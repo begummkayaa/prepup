@@ -2,13 +2,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function TabTwoScreen() {
+export default function ProfileScreen() {
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.background}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.card}>
-          <Text style={styles.title}>Gecmisim</Text>
-          <Text style={styles.subtitle}>CV analizleri ve mulakat deneme kayitlari burada listelenecek.</Text>
+          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.subtitle}>Profil ayarlari ve hesap detaylari bu alanda yer alacak.</Text>
         </View>
       </SafeAreaView>
     </LinearGradient>
