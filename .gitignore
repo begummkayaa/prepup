@@ -61,6 +61,7 @@ Desktop.ini
 *~
 
 # IDE / editör (kişisel ayarlar)
+.vscode/
 .idea/
 *.suo
 *.ntvs*
