@@ -1,10 +1,12 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
   const isWeb = Platform.OS === 'web';
+  const router = useRouter();
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
@@ -33,18 +35,20 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <LinearGradient colors={['#A78BFA', '#8B5CF6']} style={styles.primaryCard}>
-            <View style={styles.cardIconsRow}>
-              <View style={styles.primaryIconWrap}>
-                <Ionicons name="document-text-outline" size={20} color="#EEE9FF" />
+          <Pressable onPress={() => router.push('/cv-analysis')}>
+            <LinearGradient colors={['#A78BFA', '#8B5CF6']} style={styles.primaryCard}>
+              <View style={styles.cardIconsRow}>
+                <View style={styles.primaryIconWrap}>
+                  <Ionicons name="document-text-outline" size={20} color="#EEE9FF" />
+                </View>
+                <View style={styles.actionIconWrap}>
+                  <Feather name="arrow-up-right" size={16} color="#F5F3FF" />
+                </View>
               </View>
-              <View style={styles.actionIconWrap}>
-                <Feather name="arrow-up-right" size={16} color="#F5F3FF" />
-              </View>
-            </View>
-            <Text style={styles.primaryCardTitle}>CV Yükle ve Analiz Et</Text>
-            <Text style={styles.primaryCardSubtitle}>YAPAY ZEKA DESTEKLİ GERİ BİLDİRİM</Text>
-          </LinearGradient>
+              <Text style={styles.primaryCardTitle}>CV Yükle ve Analiz Et</Text>
+              <Text style={styles.primaryCardSubtitle}>YAPAY ZEKA DESTEKLİ GERİ BİLDİRİM</Text>
+            </LinearGradient>
+          </Pressable>
 
           <View style={styles.secondaryCard}>
             <View style={styles.cardIconsRow}>
