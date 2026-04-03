@@ -1,7 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,41 +12,16 @@ function isPdf(fileName?: string, mimeType?: string | null) {
 
 export default function CvAnalysisScreen() {
   const isWeb = Platform.OS === 'web';
+  const webDropZoneRef = useRef<View>(null);
+  const skipWebClickAfterDropRef = useRef(false);
+  /** Çarpı (temizle) ile aynı jestte üst alanın dosya seçiciyi açmasını engeller (web + iç içe Pressable). */
+  const suppressPickerOpenRef = useRef(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [targetRole, setTargetRole] = useState('');
   const [sector, setSector] = useState('');
 
-  const webDropEvents = useMemo(
-    () =>
-      isWeb
-        ? {
-            onDragOver: (event: any) => {
-              event.preventDefault();
-            },
-            onDrop: (event: any) => {
-              event.preventDefault();
-              const droppedFile =
-                event?.nativeEvent?.dataTransfer?.files?.[0] ?? event?.dataTransfer?.files?.[0];
-
-              if (!droppedFile) {
-                return;
-              }
-
-              if (!isPdf(droppedFile.name, droppedFile.type)) {
-                setErrorMessage('Sadece PDF dosyasi yukleyebilirsiniz.');
-                return;
-              }
-
-              setErrorMessage('');
-              setFileName(droppedFile.name);
-            },
-          }
-        : {},
-    [isWeb]
-  );
-
-  const pickPdf = async () => {
+  const pickPdf = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: 'application/pdf',
       multiple: false,
@@ -65,7 +40,105 @@ export default function CvAnalysisScreen() {
 
     setErrorMessage('');
     setFileName(selectedFile.name);
-  };
+  }, []);
+
+  const clearPdf = useCallback(() => {
+    setFileName(null);
+    setErrorMessage('');
+  }, []);
+
+  const openPdfPickerUnlessSuppressed = useCallback(() => {
+    if (suppressPickerOpenRef.current) {
+      suppressPickerOpenRef.current = false;
+      return;
+    }
+    void pickPdf();
+  }, [pickPdf]);
+
+  // react-native-web View; onDrop/onDragOver DOM'a iletilmediği için ref üzerinden dinliyoruz.
+  useLayoutEffect(() => {
+    if (!isWeb) {
+      return;
+    }
+
+    const el = webDropZoneRef.current as unknown as HTMLElement | null;
+    if (!el?.addEventListener) {
+      return;
+    }
+
+    const handleClick = () => {
+      if (skipWebClickAfterDropRef.current) {
+        return;
+      }
+      openPdfPickerUnlessSuppressed();
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const droppedFile = e.dataTransfer?.files?.[0];
+      if (!droppedFile) {
+        return;
+      }
+      if (!isPdf(droppedFile.name, droppedFile.type)) {
+        setErrorMessage('Sadece PDF dosyasi yukleyebilirsiniz.');
+        return;
+      }
+      setErrorMessage('');
+      setFileName(droppedFile.name);
+      skipWebClickAfterDropRef.current = true;
+      window.setTimeout(() => {
+        skipWebClickAfterDropRef.current = false;
+      }, 400);
+    };
+
+    el.addEventListener('click', handleClick);
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('drop', handleDrop);
+    el.setAttribute('role', 'button');
+    return () => {
+      el.removeEventListener('click', handleClick);
+      el.removeEventListener('dragover', handleDragOver);
+      el.removeEventListener('drop', handleDrop);
+      el.removeAttribute('role');
+    };
+  }, [isWeb, openPdfPickerUnlessSuppressed]);
+
+  const selectedFileBadge = fileName ? (
+    <View style={styles.fileBadge}>
+      <View style={styles.fileBadgeCheckWrap}>
+        <Ionicons name="checkmark-circle" size={16} color="#86EFAC" />
+      </View>
+      <Text style={styles.fileBadgeText} numberOfLines={1}>
+        {fileName}
+      </Text>
+      <Pressable
+        onPressIn={() => {
+          suppressPickerOpenRef.current = true;
+        }}
+        onPress={() => {
+          clearPdf();
+          setTimeout(() => {
+            suppressPickerOpenRef.current = false;
+          }, 100);
+        }}
+        style={({ pressed }) => [styles.fileBadgeClear, pressed && styles.fileBadgeClearPressed]}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        accessibilityRole="button"
+        accessibilityLabel="Secilen dosyayi kaldir"
+      >
+        <Ionicons name="close" size={22} color="#F87171" />
+      </Pressable>
+    </View>
+  ) : null;
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
@@ -86,24 +159,31 @@ export default function CvAnalysisScreen() {
             <Text style={styles.subtitle}>Kariyerini bir ust seviyeye tasimak icin analizini baslat.</Text>
           </View>
 
-          <Pressable onPress={pickPdf} style={styles.uploadTouchArea}>
-            <View style={styles.uploadCard} {...webDropEvents}>
+          {isWeb ? (
+            <View
+              ref={webDropZoneRef}
+              style={[styles.uploadTouchArea, styles.uploadCard, styles.uploadCursorWeb]}
+            >
               <View style={styles.uploadIconWrap}>
                 <MaterialIcons name="picture-as-pdf" size={32} color="#C4B5FD" />
               </View>
-              <Text style={styles.uploadTitle}>
-                {isWeb ? "CV'nizi Buraya Surukleyin veya Dosya Secin" : "CV'nizi Buraya Yukleyin"}
-              </Text>
+              <Text style={styles.uploadTitle}>{"CV'nizi Buraya Sürükleyin veya Dosya Seçin"}</Text>
               <Text style={styles.uploadHint}>Desteklenen format: PDF</Text>
 
-              {fileName ? (
-                <View style={styles.fileBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color="#86EFAC" />
-                  <Text style={styles.fileBadgeText}>{fileName}</Text>
-                </View>
-              ) : null}
+              {selectedFileBadge}
             </View>
-          </Pressable>
+          ) : (
+            <View style={[styles.uploadTouchArea, styles.uploadCard, styles.uploadCardNative]}>
+              <Pressable onPress={openPdfPickerUnlessSuppressed} style={styles.uploadNativeTapArea}>
+                <View style={styles.uploadIconWrap}>
+                  <MaterialIcons name="picture-as-pdf" size={32} color="#C4B5FD" />
+                </View>
+                <Text style={styles.uploadTitle}>{"CV'nizi Buraya Yükleyin"}</Text>
+                <Text style={styles.uploadHint}>Desteklenen format: PDF</Text>
+              </Pressable>
+              {selectedFileBadge}
+            </View>
+          )}
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
@@ -195,6 +275,9 @@ const styles = StyleSheet.create({
   uploadTouchArea: {
     borderRadius: 24,
   },
+  uploadCursorWeb: {
+    cursor: 'pointer',
+  },
   uploadCard: {
     minHeight: 250,
     borderRadius: 24,
@@ -206,6 +289,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 22,
+  },
+  /** Mobil: rozet dış Pressable dışında — iç içe Pressable çarpıyı yutmasın. */
+  uploadCardNative: {
+    width: '100%',
+    justifyContent: 'flex-start',
+  },
+  uploadNativeTapArea: {
+    width: '100%',
+    flexGrow: 1,
+    minHeight: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadIconWrap: {
     width: 84,
@@ -235,7 +330,6 @@ const styles = StyleSheet.create({
     marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     backgroundColor: 'rgba(15, 23, 42, 0.8)',
     borderRadius: 14,
     borderWidth: 1,
@@ -244,11 +338,32 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     width: '100%',
   },
+  fileBadgeCheckWrap: {
+    flexShrink: 0,
+    marginRight: 8,
+  },
   fileBadgeText: {
     color: '#86EFAC',
+    flex: 1,
     flexShrink: 1,
+    minWidth: 48,
+    marginRight: 8,
     fontSize: 13,
     fontWeight: '600',
+  },
+  /** Android: flex:1 Text kardeşi bazen çarpıyı sıfır genişliğe sıkıştırır — sabit alan şart. */
+  fileBadgeClear: {
+    flexShrink: 0,
+    width: 36,
+    height: 36,
+    marginLeft: 'auto',
+    padding: 2,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fileBadgeClearPressed: {
+    opacity: 0.7,
   },
   errorText: {
     marginTop: 8,
