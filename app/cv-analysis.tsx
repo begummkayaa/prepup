@@ -1,17 +1,40 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-function isPdf(fileName?: string, mimeType?: string | null) {
+import { BackHeader } from '@/components/navigation/back-header';
+import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
+import { useUserProfile } from '@/contexts/user-profile-context';
+
+function isPdf(fileName?: string, mimeType?: string | null, fileUri?: string) {
   const hasPdfExtension = fileName?.toLowerCase().endsWith('.pdf');
-  return mimeType === 'application/pdf' || Boolean(hasPdfExtension);
+  const hasPdfInUri = fileUri?.toLowerCase().includes('.pdf');
+  return mimeType === 'application/pdf' || Boolean(hasPdfExtension) || Boolean(hasPdfInUri);
+}
+
+function resolveFileName(fileName?: string, fileUri?: string) {
+  if (fileName?.trim()) {
+    return fileName;
+  }
+
+  if (fileUri?.trim()) {
+    const uriParts = fileUri.split('/');
+    const lastPart = uriParts[uriParts.length - 1];
+    if (lastPart?.trim()) {
+      return decodeURIComponent(lastPart);
+    }
+  }
+
+  return 'cv-dosyasi.pdf';
 }
 
 export default function CvAnalysisScreen() {
   const isWeb = Platform.OS === 'web';
+  const { profile } = useUserProfile();
   const webDropZoneRef = useRef<View>(null);
   const skipWebClickAfterDropRef = useRef(false);
   /** Çarpı (temizle) ile aynı jestte üst alanın dosya seçiciyi açmasını engeller (web + iç içe Pressable). */
@@ -20,6 +43,7 @@ export default function CvAnalysisScreen() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [targetRole, setTargetRole] = useState('');
   const [sector, setSector] = useState('');
+  const canStartAnalysis = Boolean(fileName && targetRole.trim() && sector.trim());
 
   const pickPdf = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -33,13 +57,10 @@ export default function CvAnalysisScreen() {
     }
 
     const selectedFile = result.assets[0];
-    if (!isPdf(selectedFile.name, selectedFile.mimeType)) {
-      setErrorMessage('Sadece PDF dosyasi yukleyebilirsiniz.');
-      return;
-    }
-
+    const safeFileName = resolveFileName(selectedFile.name, selectedFile.uri);
+    // Native picker zaten PDF type filtresiyle acildigi icin burada tekrar engelleyici kontrol yapmiyoruz.
     setErrorMessage('');
-    setFileName(selectedFile.name);
+    setFileName(safeFileName);
   }, []);
 
   const clearPdf = useCallback(() => {
@@ -88,12 +109,13 @@ export default function CvAnalysisScreen() {
       if (!droppedFile) {
         return;
       }
-      if (!isPdf(droppedFile.name, droppedFile.type)) {
+      const safeFileName = resolveFileName(droppedFile.name);
+      if (!isPdf(safeFileName, droppedFile.type)) {
         setErrorMessage('Sadece PDF dosyasi yukleyebilirsiniz.');
         return;
       }
       setErrorMessage('');
-      setFileName(droppedFile.name);
+      setFileName(safeFileName);
       skipWebClickAfterDropRef.current = true;
       window.setTimeout(() => {
         skipWebClickAfterDropRef.current = false;
@@ -142,15 +164,19 @@ export default function CvAnalysisScreen() {
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <BackHeader />
           <View style={styles.headerRow}>
             <View style={styles.avatar}>
               <Ionicons name="person" size={15} color="#C4B5FD" />
             </View>
             <View>
               <Text style={styles.welcomeText}>HOS GELDIN,</Text>
-              <Text style={styles.nameText}>Begum Kaya</Text>
+              <Text style={styles.nameText}>{profile.fullName}</Text>
             </View>
           </View>
 
@@ -191,7 +217,12 @@ export default function CvAnalysisScreen() {
             <Text style={styles.fieldLabel}>HEDEF POZISYON</Text>
             <TextInput
               value={targetRole}
-              onChangeText={setTargetRole}
+              onChangeText={(value) => {
+                setTargetRole(value);
+                if (errorMessage) {
+                  setErrorMessage('');
+                }
+              }}
               placeholder="Orn: Yazilim Gelistirici"
               placeholderTextColor="#475569"
               style={styles.input}
@@ -202,18 +233,37 @@ export default function CvAnalysisScreen() {
             <Text style={styles.fieldLabel}>SEKTOR</Text>
             <TextInput
               value={sector}
-              onChangeText={setSector}
+              onChangeText={(value) => {
+                setSector(value);
+                if (errorMessage) {
+                  setErrorMessage('');
+                }
+              }}
               placeholder="Orn: Teknoloji"
               placeholderTextColor="#475569"
               style={styles.input}
             />
           </View>
 
-          <Pressable style={[styles.actionButton, !fileName && styles.actionButtonDisabled]}>
-            <Text style={styles.actionButtonText}>Analizi Başlat</Text>
-          </Pressable>
+          {canStartAnalysis ? (
+            <Link
+              href={{
+                pathname: '/cv-analysis-report',
+                params: { targetRole: targetRole.trim() },
+              }}
+              asChild>
+              <Pressable style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>Analizi Başlat</Text>
+              </Pressable>
+            </Link>
+          ) : (
+            <Pressable style={[styles.actionButton, styles.actionButtonDisabled]} disabled>
+              <Text style={styles.actionButtonText}>Analizi Başlat</Text>
+            </Pressable>
+          )}
         </ScrollView>
       </SafeAreaView>
+      <BottomNavBar variant="floating" />
     </LinearGradient>
   );
 }
@@ -226,7 +276,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   scrollContainer: {
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
   headerRow: {
     marginTop: 2,

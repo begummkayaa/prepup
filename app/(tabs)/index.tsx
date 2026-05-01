@@ -4,9 +4,12 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { useUserProfile } from '@/contexts/user-profile-context';
+
 export default function HomeScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
+  const { profile } = useUserProfile();
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
@@ -22,7 +25,7 @@ export default function HomeScreen() {
               </View>
               <View>
                 <Text style={styles.welcomeText}>Hoş geldin,</Text>
-                <Text style={[styles.nameText, isWeb && styles.nameTextWeb]}>Begüm Kaya</Text>
+                <Text style={[styles.nameText, isWeb && styles.nameTextWeb]}>{profile.fullName}</Text>
               </View>
             </View>
           </View>
@@ -50,18 +53,20 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
 
-          <View style={styles.secondaryCard}>
-            <View style={styles.cardIconsRow}>
-              <View style={styles.secondaryIconWrap}>
-                <Ionicons name="chatbox-ellipses-outline" size={20} color="#C4B5FD" />
+          <Pressable onPress={() => router.push('/interview-simulation')}>
+            <View style={styles.secondaryCard}>
+              <View style={styles.cardIconsRow}>
+                <View style={styles.secondaryIconWrap}>
+                  <Ionicons name="chatbox-ellipses-outline" size={20} color="#C4B5FD" />
+                </View>
+                <View style={styles.actionIconWrapDark}>
+                  <Feather name="arrow-up-right" size={16} color="#CBD5E1" />
+                </View>
               </View>
-              <View style={styles.actionIconWrapDark}>
-                <Feather name="arrow-up-right" size={16} color="#CBD5E1" />
-              </View>
+              <Text style={styles.secondaryCardTitle}>Mülakat Simülasyonu Başlat</Text>
+              <Text style={styles.secondaryCardSubtitle}>GERÇEK ZAMANLI PRATİK MODU</Text>
             </View>
-            <Text style={styles.secondaryCardTitle}>Mülakat Simülasyonu Başlat</Text>
-            <Text style={styles.secondaryCardSubtitle}>GERÇEK ZAMANLI PRATİK MODU</Text>
-          </View>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
