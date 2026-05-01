@@ -70,16 +70,13 @@ export default function InterviewSimulationScreen() {
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]}>
         <View style={styles.pageContent}>
           <ScrollView
+            style={styles.scroll}
             contentContainerStyle={contentContainerStyle}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
             <View style={styles.topRow}>
               <BackHeader />
-              <Pressable
-                onPress={() => router.push('/interview-summary')}
-                style={({ pressed }) => [styles.finishBtn, pressed && styles.finishBtnPressed]}>
-                <Ionicons name="checkmark-done" size={18} color="#0F172A" />
-              </Pressable>
+              <View style={styles.topRightSpacer} />
             </View>
             <SimulationHeader userName={profile.fullName} targetRole="Yazılım Geliştirici" />
 
@@ -95,7 +92,7 @@ export default function InterviewSimulationScreen() {
             </View>
           </ScrollView>
 
-          <View style={styles.inputWrap}>
+          <View style={[styles.inputWrap, isWeb && styles.inputWrapWeb]}>
             <View style={styles.inputRow}>
               <TextInput
                 value={inputValue}
@@ -136,21 +133,17 @@ const styles = StyleSheet.create({
   pageContent: {
     flex: 1,
   },
+  scroll: {
+    flex: 1,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  finishBtn: {
+  topRightSpacer: {
     width: 40,
     height: 40,
-    borderRadius: 14,
-    backgroundColor: '#C4B5FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  finishBtnPressed: {
-    opacity: 0.75,
   },
   scrollContent: {
     paddingBottom: 26,
@@ -167,6 +160,9 @@ const styles = StyleSheet.create({
   inputWrap: {
     paddingTop: 8,
     paddingBottom: 56,
+  },
+  inputWrapWeb: {
+    marginBottom: 80,
   },
   inputRow: {
     borderRadius: 14,

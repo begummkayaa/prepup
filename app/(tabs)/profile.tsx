@@ -33,16 +33,7 @@ export default function ProfileScreen() {
 
               <Text style={styles.topTitle}>Profil</Text>
 
-              <Pressable
-                onPress={() => {}}
-                style={({ pressed, hovered }) => [
-                  styles.iconBtn,
-                  pressed && styles.iconBtnPressed,
-                  isWeb && hovered && styles.iconBtnHover,
-                ]}
-                hitSlop={12}>
-                <Ionicons name="settings-outline" size={20} color="#C4B5FD" />
-              </Pressable>
+              <View style={styles.topRightSpacer} />
             </View>
 
             <View style={styles.hero}>
@@ -181,6 +172,7 @@ const styles = StyleSheet.create({
   },
   iconBtnHover: { borderColor: 'rgba(196, 181, 253, 0.35)', backgroundColor: 'rgba(15, 23, 42, 0.7)' },
   iconBtnPressed: { opacity: 0.75 },
+  topRightSpacer: { width: 40, height: 40 },
 
   hero: { marginTop: 18, alignItems: 'center', paddingVertical: 16 },
   avatarOuter: { width: 140, height: 140, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
