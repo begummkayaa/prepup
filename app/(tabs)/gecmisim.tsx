@@ -68,69 +68,89 @@ export default function GecmisimScreen() {
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.headerRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={15} color="#C4B5FD" />
+          <View style={styles.content}>
+            <View style={styles.headerRow}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={15} color="#C4B5FD" />
+              </View>
+              <View>
+                <Text style={styles.welcomeText}>Hoş geldin,</Text>
+                <Text style={styles.nameText}>{profile.fullName}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.welcomeText}>Hoş geldin,</Text>
-              <Text style={styles.nameText}>{profile.fullName}</Text>
+
+            <Text style={styles.pageTitle}>Geçmişim</Text>
+
+            <View style={styles.filtersRow}>
+              <Pressable
+                onPress={() => setActiveFilter('all')}
+                style={({ hovered, pressed }) => [
+                  styles.filterPill,
+                  activeFilter === 'all' && styles.filterPillActive,
+                  isWeb && hovered && styles.hover,
+                  pressed && styles.pressed,
+                ]}>
+                <Text style={[styles.filterText, activeFilter === 'all' && styles.filterTextActive]}>Tümü</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setActiveFilter('cv')}
+                style={({ hovered, pressed }) => [
+                  styles.filterPill,
+                  activeFilter === 'cv' && styles.filterPillActive,
+                  isWeb && hovered && styles.hover,
+                  pressed && styles.pressed,
+                ]}>
+                <Text style={[styles.filterText, activeFilter === 'cv' && styles.filterTextActive]}>
+                  CV{'\n'}Analizleri
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setActiveFilter('interview')}
+                style={({ hovered, pressed }) => [
+                  styles.filterPill,
+                  activeFilter === 'interview' && styles.filterPillActive,
+                  isWeb && hovered && styles.hover,
+                  pressed && styles.pressed,
+                ]}>
+                <Text style={[styles.filterText, activeFilter === 'interview' && styles.filterTextActive]}>
+                  Mülakatlar
+                </Text>
+              </Pressable>
             </View>
-          </View>
 
-          <Text style={styles.pageTitle}>Geçmişim</Text>
-
-          <View style={styles.filtersRow}>
-            <Pressable
-              onPress={() => setActiveFilter('all')}
-              style={[styles.filterPill, activeFilter === 'all' && styles.filterPillActive]}>
-              <Text style={[styles.filterText, activeFilter === 'all' && styles.filterTextActive]}>Tümü</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveFilter('cv')}
-              style={[styles.filterPill, activeFilter === 'cv' && styles.filterPillActive]}>
-              <Text style={[styles.filterText, activeFilter === 'cv' && styles.filterTextActive]}>
-                CV{'\n'}Analizleri
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveFilter('interview')}
-              style={[styles.filterPill, activeFilter === 'interview' && styles.filterPillActive]}>
-              <Text style={[styles.filterText, activeFilter === 'interview' && styles.filterTextActive]}>
-                Mülakatlar
-              </Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.list}>
-            {filteredItems.map((item, idx) => {
-              const showAccent = idx === 0 || idx === 2;
-              return (
-                <View key={item.id} style={[styles.itemCard, showAccent && styles.itemCardAccent]}>
-                  {showAccent ? <View style={styles.accentStrip} /> : null}
-                  <View style={styles.itemInner}>
-                    <View style={styles.itemLeft}>
-                      <View style={styles.itemIconWrap}>
-                        <Ionicons
-                          name={item.icon}
-                          size={18}
-                          color="#C4B5FD"
-                        />
+            <View style={styles.list}>
+              {filteredItems.map((item, idx) => {
+                const showAccent = idx === 0 || idx === 2;
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={({ hovered, pressed }) => [
+                      styles.itemCard,
+                      showAccent && styles.itemCardAccent,
+                      isWeb && hovered && styles.itemCardHover,
+                      pressed && styles.pressed,
+                    ]}>
+                    {showAccent ? <View style={styles.accentStrip} /> : null}
+                    <View style={styles.itemInner}>
+                      <View style={styles.itemLeft}>
+                        <View style={styles.itemIconWrap}>
+                          <Ionicons name={item.icon} size={18} color="#C4B5FD" />
+                        </View>
+                        <View style={styles.itemTextCol}>
+                          <Text style={styles.itemTitle}>{item.title}</Text>
+                          <Text style={styles.itemDate}>{item.dateLabel}</Text>
+                        </View>
                       </View>
-                      <View style={styles.itemTextCol}>
-                        <Text style={styles.itemTitle}>{item.title}</Text>
-                        <Text style={styles.itemDate}>{item.dateLabel}</Text>
+
+                      <View style={styles.itemRight}>
+                        <Text style={styles.itemRightText}>{item.rightLabel}</Text>
+                        <Ionicons name="chevron-forward" size={18} color="#64748B" />
                       </View>
                     </View>
-
-                    <View style={styles.itemRight}>
-                      <Text style={styles.itemRightText}>{item.rightLabel}</Text>
-                      <Ionicons name="chevron-forward" size={18} color="#64748B" />
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -143,6 +163,11 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
   safeAreaWeb: { paddingHorizontal: 18 },
   scrollContent: { paddingBottom: 140 },
+  content: {
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+  },
 
   headerRow: { marginTop: 2, flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
@@ -194,6 +219,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(148, 163, 184, 0.14)',
     overflow: 'hidden',
   },
+  itemCardHover: {
+    borderColor: 'rgba(196, 181, 253, 0.35)',
+    backgroundColor: 'rgba(15, 23, 42, 0.62)',
+  },
   itemCardAccent: {
     borderColor: 'rgba(196, 181, 253, 0.22)',
   },
@@ -227,4 +256,12 @@ const styles = StyleSheet.create({
   itemDate: { marginTop: 6, color: '#94A3B8', fontSize: 12, fontWeight: '600' },
   itemRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   itemRightText: { color: '#C4B5FD', fontSize: 16, fontWeight: '900' },
+
+  hover: {
+    borderColor: 'rgba(196, 181, 253, 0.45)',
+  },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
+  },
 });
