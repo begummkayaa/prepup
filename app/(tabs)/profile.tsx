@@ -51,7 +51,7 @@ export default function ProfileScreen() {
 
             <View style={styles.cards}>
               <Pressable
-                onPress={() => {}}
+                onPress={() => router.push('/personal-info')}
                 style={({ pressed, hovered }) => [
                   styles.card,
                   isWeb && hovered && styles.cardHover,
@@ -97,7 +97,7 @@ export default function ProfileScreen() {
               </View>
 
               <Pressable
-                onPress={() => {}}
+                onPress={() => router.push('/forgot-password')}
                 style={({ pressed, hovered }) => [
                   styles.card,
                   isWeb && hovered && styles.cardHover,
@@ -105,30 +105,11 @@ export default function ProfileScreen() {
                 ]}>
                 <View style={styles.cardLeft}>
                   <View style={styles.cardIcon}>
-                    <Ionicons name="settings" size={18} color="#C4B5FD" />
+                    <Ionicons name="key-outline" size={18} color="#C4B5FD" />
                   </View>
                   <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>Uygulama Ayarları</Text>
-                    <Text style={styles.cardSubtitle}>Tercihler ve bildirimler</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#64748B" />
-              </Pressable>
-
-              <Pressable
-                onPress={() => {}}
-                style={({ pressed, hovered }) => [
-                  styles.card,
-                  isWeb && hovered && styles.cardHover,
-                  pressed && styles.cardPressed,
-                ]}>
-                <View style={styles.cardLeft}>
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="help-circle" size={18} color="#C4B5FD" />
-                  </View>
-                  <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>Yardım ve Destek</Text>
-                    <Text style={styles.cardSubtitle}>Sıkça sorulan sorular</Text>
+                    <Text style={styles.cardTitle}>Şifremi Unuttum</Text>
+                    <Text style={styles.cardSubtitle}>Şifre sıfırlama</Text>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#64748B" />
