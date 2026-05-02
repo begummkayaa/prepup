@@ -4,6 +4,7 @@ import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useSt
 type UserProfile = {
   fullName: string;
   firstName: string;
+  email: string;
 };
 
 type UserProfileContextValue = {
@@ -14,6 +15,7 @@ type UserProfileContextValue = {
 const FALLBACK_PROFILE: UserProfile = {
   fullName: 'Kullanıcı',
   firstName: 'Kullanıcı',
+  email: '',
 };
 
 const PROFILE_KEYS = [
@@ -32,17 +34,74 @@ const UserProfileContext = createContext<UserProfileContextValue>({
   isLoading: true,
 });
 
-function toUserProfile(rawName: string): UserProfile {
+function toUserProfile(rawName: string, email = ''): UserProfile {
   const trimmed = rawName.trim();
   if (!trimmed) {
-    return FALLBACK_PROFILE;
+    return { ...FALLBACK_PROFILE, email };
   }
 
   const [firstToken] = trimmed.split(/\s+/);
   return {
     fullName: trimmed,
     firstName: firstToken || FALLBACK_PROFILE.firstName,
+    email,
   };
+}
+
+function extractEmail(value: unknown): string {
+  if (typeof value === 'string' && value.includes('@')) {
+    return value.trim();
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return '';
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of ['email', 'mail', 'eMail', 'userEmail']) {
+    const candidate = record[key];
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return '';
+}
+
+function parseStoredProfile(rawValue: string): UserProfile | null {
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const email = extractEmail(parsed);
+      const name = extractName(parsed);
+      if (name) {
+        return toUserProfile(name, email);
+      }
+      if (email) {
+        return { ...FALLBACK_PROFILE, email };
+      }
+      return null;
+    }
+
+    const nameFromJson = extractName(parsed);
+    const emailFromJson = extractEmail(parsed);
+    if (nameFromJson) {
+      return toUserProfile(nameFromJson, emailFromJson);
+    }
+    if (emailFromJson) {
+      return { ...FALLBACK_PROFILE, email: emailFromJson };
+    }
+  } catch {
+    const nameOnly = extractName(trimmed);
+    if (nameOnly) {
+      return toUserProfile(nameOnly, '');
+    }
+  }
+
+  return null;
 }
 
 function extractName(value: unknown): string | null {
@@ -64,20 +123,6 @@ function extractName(value: unknown): string | null {
   return null;
 }
 
-function parseStoredValue(rawValue: string): string | null {
-  const trimmed = rawValue.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    return extractName(parsed);
-  } catch {
-    return extractName(trimmed);
-  }
-}
-
 async function safeGetItem(key: string): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(key);
@@ -93,9 +138,9 @@ async function loadUserProfile(): Promise<UserProfile> {
       continue;
     }
 
-    const parsedName = parseStoredValue(item);
-    if (parsedName) {
-      return toUserProfile(parsedName);
+    const parsed = parseStoredProfile(item);
+    if (parsed) {
+      return parsed;
     }
   }
 
