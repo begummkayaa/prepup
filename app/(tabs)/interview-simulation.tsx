@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChatMessageBubble } from '@/components/interview-simulation/chat-message-bubble';
@@ -76,7 +76,9 @@ export default function InterviewSimulationScreen() {
             keyboardShouldPersistTaps="handled">
             <View style={styles.topRow}>
               <BackHeader />
-              <View style={styles.topRightSpacer} />
+              <Pressable onPress={() => router.push('/interview-summary')} style={styles.summaryLink}>
+                <Text style={styles.summaryLinkText}>Özete git</Text>
+              </Pressable>
             </View>
             <SimulationHeader userName={profile.fullName} targetRole="Yazılım Geliştirici" />
 
@@ -141,9 +143,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  topRightSpacer: {
-    width: 40,
-    height: 40,
+  summaryLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167, 139, 250, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.28)',
+  },
+  summaryLinkText: {
+    color: '#C4B5FD',
+    fontSize: 13,
+    fontWeight: '700',
   },
   scrollContent: {
     paddingBottom: 26,

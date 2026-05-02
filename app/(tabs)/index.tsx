@@ -4,12 +4,26 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { useInterviewAccess } from '@/contexts/interview-access-context';
 import { useUserProfile } from '@/contexts/user-profile-context';
 
 export default function HomeScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
   const { profile } = useUserProfile();
+  const { hasCompletedInterviewSimulation, isLoading: interviewAccessLoading } = useInterviewAccess();
+
+  const openInterviewFlow = () => {
+    if (interviewAccessLoading) {
+      router.push('/interview-simulation');
+      return;
+    }
+    if (hasCompletedInterviewSimulation) {
+      router.push('/interview-preparation');
+    } else {
+      router.push('/interview-simulation');
+    }
+  };
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
@@ -53,7 +67,7 @@ export default function HomeScreen() {
             </LinearGradient>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/interview-simulation')}>
+          <Pressable onPress={openInterviewFlow}>
             <View style={styles.secondaryCard}>
               <View style={styles.cardIconsRow}>
                 <View style={styles.secondaryIconWrap}>

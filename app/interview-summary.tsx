@@ -1,17 +1,24 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackHeader } from '@/components/navigation/back-header';
 import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
+import { useInterviewAccess } from '@/contexts/interview-access-context';
 import { useUserProfile } from '@/contexts/user-profile-context';
 
 export default function InterviewSummaryScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
   const { profile } = useUserProfile();
+  const { markInterviewSimulationCompleted } = useInterviewAccess();
+
+  useEffect(() => {
+    void markInterviewSimulationCompleted();
+  }, [markInterviewSimulationCompleted]);
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
