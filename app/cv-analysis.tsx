@@ -165,10 +165,12 @@ export default function CvAnalysisScreen() {
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+        <View style={styles.scrollWrap}>
+          <ScrollView
+            style={styles.scrollFlex}
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
           <BackHeader />
           <View style={styles.headerRow}>
             <View style={styles.avatar}>
@@ -262,8 +264,9 @@ export default function CvAnalysisScreen() {
             </Pressable>
           )}
         </ScrollView>
+        </View>
+        <BottomNavBar variant="docked" />
       </SafeAreaView>
-      <BottomNavBar variant="floating" />
     </LinearGradient>
   );
 }
@@ -275,8 +278,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 10,
   },
+  /** flex + minHeight:0: Android'de ScrollView kardeş nav ile düzgün paylaşsın */
+  scrollWrap: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scrollFlex: { flex: 1 },
   scrollContainer: {
-    paddingBottom: 140,
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   headerRow: {
     marginTop: 2,

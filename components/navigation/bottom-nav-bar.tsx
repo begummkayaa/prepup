@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
   dockedOuter: {
     paddingHorizontal: 20,
     backgroundColor: 'transparent',
+    flexShrink: 0,
     zIndex: 999,
     elevation: 999,
   },

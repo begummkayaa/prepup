@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -54,6 +55,7 @@ const ITEMS: HistoryItem[] = [
 
 export default function GecmisimScreen() {
   const isWeb = Platform.OS === 'web';
+  const router = useRouter();
   const { profile } = useUserProfile();
   const [activeFilter, setActiveFilter] = useState<HistoryType>('all');
 
@@ -124,6 +126,12 @@ export default function GecmisimScreen() {
                 return (
                   <Pressable
                     key={item.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/report-detail',
+                        params: { id: item.id },
+                      })
+                    }
                     style={({ hovered, pressed }) => [
                       styles.itemCard,
                       showAccent && styles.itemCardAccent,
