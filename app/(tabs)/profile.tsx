@@ -1,27 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { router, useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUserProfile } from '@/contexts/user-profile-context';
 
+/** Tab bar: bottom 22 + height 66 — dokunuşların altta kaybolmaması için aynı değerlerle rezerv. */
+const TAB_BAR_OFFSET = 22;
+const TAB_BAR_HEIGHT = 66;
+
 export default function ProfileScreen() {
   const isWeb = Platform.OS === 'web';
-  const router = useRouter();
-  const { profile } = useUserProfile();
+  const localRouter = useRouter();
+  const insets = useSafeAreaInsets();
+  const { profile, signOut } = useUserProfile();
+
+  const scrollBottomPad = TAB_BAR_OFFSET + TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 28;
 
   const roleLabel = useMemo(() => 'YAZILIM GELİŞTİRİCİ', []);
+
+  const handleLogout = useCallback(async () => {
+    await signOut();
+    /** `/` `/(tabs)` ile karışabiliyor; giriş formu `/sign-in` */
+    router.replace('/sign-in');
+  }, [signOut]);
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.background}>
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPad }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             <View style={styles.topBar}>
               <Pressable
-                onPress={() => router.back()}
+                onPress={() => localRouter.back()}
                 style={({ pressed, hovered }) => [
                   styles.iconBtn,
                   pressed && styles.iconBtnPressed,
@@ -51,7 +67,7 @@ export default function ProfileScreen() {
 
             <View style={styles.cards}>
               <Pressable
-                onPress={() => router.push('/personal-info')}
+                onPress={() => localRouter.push('/personal-info')}
                 style={({ pressed, hovered }) => [
                   styles.card,
                   isWeb && hovered && styles.cardHover,
@@ -97,7 +113,7 @@ export default function ProfileScreen() {
               </View>
 
               <Pressable
-                onPress={() => router.push('/forgot-password')}
+                onPress={() => localRouter.push('/forgot-password')}
                 style={({ pressed, hovered }) => [
                   styles.card,
                   isWeb && hovered && styles.cardHover,
@@ -116,15 +132,24 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <Pressable
-              onPress={() => {}}
-              style={({ pressed, hovered }) => [
-                styles.logoutBtn,
-                pressed && styles.logoutPressed,
-                isWeb && hovered && styles.logoutHover,
-              ]}>
-              <Text style={styles.logoutText}>OTURUMU KAPAT</Text>
-            </Pressable>
+            <View style={styles.logoutWrap}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Oturumu kapat"
+                hitSlop={{ top: 16, bottom: 24, left: 20, right: 20 }}
+                android_ripple={{ color: 'rgba(251, 113, 133, 0.25)' }}
+                onPress={() => {
+                  void handleLogout();
+                }}
+                style={({ pressed, hovered }) => [
+                  styles.logoutBtn,
+                  pressed && styles.logoutPressed,
+                  isWeb && hovered && styles.logoutHover,
+                  isWeb && styles.logoutWeb,
+                ]}>
+                <Text style={styles.logoutText}>OTURUMU KAPAT</Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -136,7 +161,7 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: 18, paddingTop: 10 },
   safeAreaWeb: { paddingHorizontal: 18 },
-  scrollContent: { paddingBottom: 140 },
+  scrollContent: { flexGrow: 1 },
   content: { width: '100%', maxWidth: 520, alignSelf: 'center' },
 
   topBar: { marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -237,9 +262,15 @@ const styles = StyleSheet.create({
   pdfDownloadHover: { borderColor: 'rgba(196, 181, 253, 0.45)', backgroundColor: 'rgba(167, 139, 250, 0.16)' },
   pdfDownloadPressed: { opacity: 0.75 },
 
-  logoutBtn: {
+  logoutWrap: {
     marginTop: 20,
-    height: 44,
+    marginBottom: Platform.OS === 'android' ? 32 : 16,
+    zIndex: 50,
+    elevation: Platform.OS === 'android' ? 24 : 0,
+  },
+  logoutWeb: { cursor: 'pointer' },
+  logoutBtn: {
+    height: 48,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(251, 113, 133, 0.4)',

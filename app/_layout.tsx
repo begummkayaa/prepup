@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { AuthRedirectToLogin } from '@/components/auth-redirect';
 import { InterviewAccessProvider } from '@/contexts/interview-access-context';
 import { UserProfileProvider } from '@/contexts/user-profile-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -17,11 +18,13 @@ export default function RootLayout() {
 
   return (
     <UserProfileProvider>
+      <AuthRedirectToLogin />
       <InterviewAccessProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="register" options={{ headerShown: false }} />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="cv-analysis" options={{ headerShown: false }} />
           <Stack.Screen name="cv-analysis-report" options={{ headerShown: false }} />

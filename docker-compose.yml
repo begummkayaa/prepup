@@ -1,0 +1,41 @@
+# PrepUp — Docker Compose (API varsayılan)
+# Sadece API:   docker compose up --build
+# API + DB:     docker compose --profile infra up --build
+#
+# Ortam: .env.example dosyasını .env olarak kopyalayıp düzenleyin.
+
+name: prepup
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PUBLISH_PORT:-3000}:${PORT:-3000}"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      API_PREFIX: ${API_PREFIX:-/api}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      DATABASE_URL: ${DATABASE_URL:-}
+      REDIS_URL: ${REDIS_URL:-}
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const b=process.env.API_PREFIX||'/api';fetch('http://127.0.0.1:'+(process.env.PORT||3000)+b+'/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  default:
+    name: prepup_net

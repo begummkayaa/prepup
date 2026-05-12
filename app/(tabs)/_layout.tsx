@@ -13,26 +13,25 @@ export default function TabLayout() {
           right: 20,
           bottom: 22,
           height: 66,
-          borderRadius: 24, // Kenarları görseldeki gibi oval yapar
-          backgroundColor: '#0F172A', // Koyu arka plan
+          borderRadius: 24,
+          backgroundColor: '#0F172A',
           borderTopWidth: 0,
           elevation: 10,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.5,
           shadowRadius: 15,
-          paddingBottom: 10, // Yazıları yukarı taşımak ve boşluk bırakmak için
+          paddingBottom: 10,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 9,
           fontWeight: '700',
-          textTransform: 'uppercase', // Görseldeki gibi büyük harf görünümü için
+          textTransform: 'uppercase',
           marginTop: 1,
         },
-        // AKTİF VE PASİF RENK AYARLARI
-        tabBarActiveTintColor: '#C4B5FD', // İkon ve yazı aktifken açık mor/lila
-        tabBarInactiveTintColor: '#64748B', // Pasifken gri tonu
+        tabBarActiveTintColor: '#C4B5FD',
+        tabBarInactiveTintColor: '#64748B',
         tabBarShowLabel: true,
       }}>
       <Tabs.Screen
@@ -40,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'ANA SAYFA',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={20} name={focused ? "home" : "home-outline"} color={color} />
+            <Ionicons size={20} name={focused ? 'home' : 'home-outline'} color={color} />
           ),
         }}
       />
@@ -49,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'GEÇMİŞİM',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={20} name={focused ? "time" : "time-outline"} color={color} />
+            <Ionicons size={20} name={focused ? 'time' : 'time-outline'} color={color} />
           ),
         }}
       />
@@ -58,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'PROFİL',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons size={20} name={focused ? "person" : "person-outline"} color={color} />
+            <Ionicons size={20} name={focused ? 'person' : 'person-outline'} color={color} />
           ),
         }}
       />

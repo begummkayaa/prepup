@@ -1,0 +1,45 @@
+# PostgreSQL + Redis (isteğe bağlı profil: infra)
+# Kullanım: docker compose -f docker-compose.yml -f docker-compose.infra.yml --profile infra up -d
+#
+# API aynı anda açılacaksa tek komut:
+#   docker compose -f docker-compose.yml -f docker-compose.infra.yml --profile infra up --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["infra"]
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PUBLISH_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prepup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prepup}
+      POSTGRES_DB: ${POSTGRES_DB:-prepup}
+    volumes:
+      - prepup_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["infra"]
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PUBLISH_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - prepup_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  prepup_pgdata:
+    name: prepup_pgdata
+  prepup_redisdata:
+    name: prepup_redisdata

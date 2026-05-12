@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useUserProfile } from '@/contexts/user-profile-context';
 
+/** Mockup yakın tonları (PrepUp logo / giriş) */
 const BG = '#0B0E14';
 const ACCENT = '#B298FF';
 const ACCENT_BTN_TEXT = '#0B0E14';
@@ -25,22 +26,16 @@ const MUTED = '#94A3B8';
 const BORDER_SUB = 'rgba(148, 163, 184, 0.2)';
 const LABEL = '#94A3B8';
 
-export default function RegisterScreen() {
+export default function SignInScreen() {
   const router = useRouter();
-  const { signUp } = useUserProfile();
+  const { signIn } = useUserProfile();
   const isWeb = Platform.OS === 'web';
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const onRegister = useCallback(async () => {
-    if (!fullName.trim()) {
-      setError('Tam isim gerekli.');
-      return;
-    }
+  const onLogin = useCallback(async () => {
     const trimmed = email.trim();
     if (!trimmed.includes('@')) {
       setError('Geçerli bir e-posta gir.');
@@ -50,21 +45,17 @@ export default function RegisterScreen() {
       setError('Şifre en az 8 karakter olmalı.');
       return;
     }
-    if (password !== confirm) {
-      setError('Şifreler eşleşmiyor.');
-      return;
-    }
     setError('');
     setBusy(true);
     try {
-      await signUp(fullName.trim(), trimmed, password);
+      await signIn(trimmed, password);
       router.replace('/(tabs)');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kayıt başarısız.');
+      setError(err instanceof Error ? err.message : 'Giriş başarısız.');
     } finally {
       setBusy(false);
     }
-  }, [fullName, email, password, confirm, router, signUp]);
+  }, [email, password, router, signIn]);
 
   return (
     <LinearGradient colors={['#020617', BG]} style={styles.gradient}>
@@ -87,26 +78,13 @@ export default function RegisterScreen() {
                 <Text style={styles.titleLight}>{`PrepUp'a `}</Text>
                 <Text style={styles.titleAccent}>Hoş Geldin!</Text>
               </Text>
-              <Text style={styles.subtitle}>Kariyer yolculuğuna bugün başla.</Text>
+              <Text style={styles.subtitle}>Kariyer yolculuğuna kaldığın yerden devam et.</Text>
 
               <View style={styles.form}>
-                <Text style={styles.label}>TAM İSİM</Text>
+                <Text style={styles.label}>E-POSTA ADRESİ</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ad ve soyad"
-                  placeholderTextColor="#64748B"
-                  autoCapitalize="words"
-                  value={fullName}
-                  onChangeText={(t) => {
-                    setFullName(t);
-                    setError('');
-                  }}
-                />
-
-                <Text style={[styles.label, styles.labelGap]}>E-POSTA ADRESİ</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="E-posta adresiniz"
+                  placeholder="Kayıtlı e-posta adresiniz"
                   placeholderTextColor="#64748B"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -121,7 +99,7 @@ export default function RegisterScreen() {
                 <Text style={[styles.label, styles.labelGap]}>ŞİFRE</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Minimum 8 karakter"
+                  placeholder="Hesap şifreniz"
                   placeholderTextColor="#64748B"
                   secureTextEntry
                   value={password}
@@ -131,23 +109,14 @@ export default function RegisterScreen() {
                   }}
                 />
 
-                <Text style={[styles.label, styles.labelGap]}>ŞİFREYİ ONAYLA</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Şifre tekrarı"
-                  placeholderTextColor="#64748B"
-                  secureTextEntry
-                  value={confirm}
-                  onChangeText={(t) => {
-                    setConfirm(t);
-                    setError('');
-                  }}
-                />
+                <Pressable onPress={() => router.push('/forgot-password')} style={styles.forgotWrap}>
+                  <Text style={styles.forgotText}>Şifremi Unuttum?</Text>
+                </Pressable>
 
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 <Pressable
-                  onPress={() => void onRegister()}
+                  onPress={() => void onLogin()}
                   disabled={busy}
                   style={({ pressed }) => [
                     styles.primaryBtn,
@@ -157,15 +126,15 @@ export default function RegisterScreen() {
                   {busy ? (
                     <ActivityIndicator color={ACCENT_BTN_TEXT} />
                   ) : (
-                    <Text style={styles.primaryBtnText}>Kayıt Ol</Text>
+                    <Text style={styles.primaryBtnText}>Giriş Yap</Text>
                   )}
                 </Pressable>
               </View>
 
               <View style={styles.footerRow}>
-                <Text style={styles.footerMuted}>Zaten üye misin? </Text>
-                <Pressable onPress={() => router.replace('/sign-in')} hitSlop={8}>
-                  <Text style={styles.footerLink}>Şimdi Giriş Yap.</Text>
+                <Text style={styles.footerMuted}>Henüz üye değil misin? </Text>
+                <Pressable onPress={() => router.push('/register')} hitSlop={8}>
+                  <Text style={styles.footerLink}>Şimdi Kayıt Ol.</Text>
                 </Pressable>
               </View>
             </View>
@@ -216,7 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   form: { width: '100%' },
   label: {
@@ -226,10 +195,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     marginBottom: 8,
   },
-  labelGap: { marginTop: 12 },
+  labelGap: { marginTop: 14 },
   input: {
     backgroundColor: INPUT_BG,
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: BORDER_SUB,
     paddingHorizontal: 16,
@@ -238,15 +207,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    marginTop: 10,
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  forgotText: {
+    color: ACCENT,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   errorText: {
     color: '#FB7185',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   primaryBtn: {
-    marginTop: 20,
+    marginTop: 12,
     backgroundColor: ACCENT,
     borderRadius: 28,
     paddingVertical: 16,
@@ -262,7 +241,7 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     marginTop: 'auto',
-    paddingTop: 24,
+    paddingTop: 28,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
