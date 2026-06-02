@@ -1,12 +1,31 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackHeader } from '@/components/navigation/back-header';
 import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
 import { useUserProfile } from '@/contexts/user-profile-context';
+import { DEFAULT_CV_ANALYSIS_REPORT, normalizeCvAnalysisReport, type CvAnalysisAiReport } from '@/lib/cv-analysis-types';
+
+const ACCENT_PURPLE = '#B19DFF';
+const PAGE_BG = '#0B0E14';
+
+function parseReportParam(raw: string | string[] | undefined): CvAnalysisAiReport {
+  const s = Array.isArray(raw) ? raw[0] : raw;
+  if (!s || typeof s !== 'string') {
+    return DEFAULT_CV_ANALYSIS_REPORT;
+  }
+  try {
+    const json = decodeURIComponent(s);
+    const parsed = JSON.parse(json) as Partial<CvAnalysisAiReport>;
+    return normalizeCvAnalysisReport(parsed);
+  } catch {
+    return DEFAULT_CV_ANALYSIS_REPORT;
+  }
+}
 
 function BulletItem({ text, color }: { text: string; color: string }) {
   return (
@@ -17,91 +36,116 @@ function BulletItem({ text, color }: { text: string; color: string }) {
   );
 }
 
+function SectionIconBadge({
+  backgroundColor,
+  children,
+}: {
+  backgroundColor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={[styles.sectionIconBadge, { backgroundColor }]}>{children}</View>
+  );
+}
+
 export default function CvAnalysisReportScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
   const { profile } = useUserProfile();
-  const params = useLocalSearchParams<{ targetRole?: string }>();
-  const targetRole = typeof params.targetRole === 'string' ? params.targetRole : 'Yazılım Geliştirici';
+  const params = useLocalSearchParams<{ targetRole?: string; sector?: string; report?: string }>();
+  const targetRole =
+    typeof params.targetRole === 'string' && params.targetRole.trim()
+      ? params.targetRole.trim()
+      : 'Yazılım Geliştirici';
+  const sector =
+    typeof params.sector === 'string' && params.sector.trim() ? params.sector.trim() : '';
+
+  const report = useMemo(() => parseReportParam(params.report), [params.report]);
 
   return (
-    <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
+    <View style={styles.pageBackground}>
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]} edges={['top', 'left', 'right']}>
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, isWeb && styles.scrollContentWeb]}
-          showsVerticalScrollIndicator={false}>
-          <BackHeader />
-          <View style={styles.headerRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={15} color="#C4B5FD" />
-            </View>
-            <View>
-              <Text style={styles.welcomeText}>HOŞ GELDİN,</Text>
-              <Text style={styles.nameText}>{profile.fullName}</Text>
-            </View>
-          </View>
-
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>CV Analiz Raporu</Text>
-            <Text style={styles.subtitle}>{targetRole} Pozisyonu İçin</Text>
-          </View>
-
-          <LinearGradient colors={['#BFA5FF', '#A78BFA']} style={styles.scoreCard}>
-            <View style={styles.scoreRow}>
-              <Text style={styles.scoreValue}>%82</Text>
-              <Text style={styles.scoreLabel}>Uyumluluk{'\n'}Skoru</Text>
-            </View>
-            <Text style={styles.scoreDescription}>
-              Özgeçmişin hedeflediğin pozisyonla büyük oranda örtüşüyor.
-            </Text>
-          </LinearGradient>
-
-          <View style={styles.infoCard}>
-            <View style={styles.infoTitleRow}>
-              <MaterialIcons name="verified" size={18} color="#4ADE80" />
-              <Text style={styles.infoTitle}>Güçlü Yönlerin</Text>
-            </View>
-            <BulletItem text="Teknik projelerdeki derinlik" color="#4ADE80" />
-            <BulletItem text="Kullanılan teknolojilerin güncelliği" color="#4ADE80" />
-          </View>
-
-          <View style={[styles.infoCard, styles.warningCard]}>
-            <View style={styles.infoTitleRow}>
-              <MaterialIcons name="error" size={18} color="#FB923C" />
-              <Text style={styles.infoTitle}>Eksik Alanlar</Text>
-            </View>
-            <BulletItem text="Birim test (Unit Testing) tecrübesi eksikliği" color="#FB923C" />
-            <BulletItem text="Cloud servisleri bilgisi" color="#FB923C" />
-          </View>
-
-          <View style={styles.suggestionCard}>
-            <View style={styles.infoTitleRow}>
-              <Ionicons name="bulb" size={17} color="#C4B5FD" />
-              <Text style={styles.infoTitle}>İyileştirme Önerileri</Text>
+        <View style={styles.scrollWrap}>
+          <ScrollView
+            style={styles.scrollFlex}
+            contentContainerStyle={[styles.scrollContent, isWeb && styles.scrollContentWeb]}
+            showsVerticalScrollIndicator={false}>
+            <BackHeader />
+            <View style={styles.headerRow}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={15} color={ACCENT_PURPLE} />
+              </View>
+              <View>
+                <Text style={styles.welcomeText}>HOŞ GELDİN,</Text>
+                <Text style={styles.nameText}>{profile.fullName}</Text>
+              </View>
             </View>
 
-            <View style={styles.suggestionItem}>
-              <Text style={styles.suggestionIndex}>01</Text>
-              <Text style={styles.suggestionText}>Projelerinde kullandığın teknolojileri daha spesifik belirt.</Text>
+            <View style={styles.titleBlock}>
+              <Text style={styles.title}>CV Analiz Raporu</Text>
+              <Text style={styles.subtitle}>{targetRole} Pozisyonu İçin</Text>
+              {sector ? <Text style={styles.sectorLine}>{sector} sektörü</Text> : null}
             </View>
-            <View style={styles.suggestionItem}>
-              <Text style={styles.suggestionIndex}>02</Text>
-              <Text style={styles.suggestionText}>Sertifikalarını daha görünür kıl.</Text>
-            </View>
-          </View>
 
-          <Pressable style={styles.actionButton} onPress={() => router.push('/interview-simulation')}>
-            <Text style={styles.actionButtonText}>MÜLAKAT SİMÜLASYONUNA GEÇ</Text>
-          </Pressable>
-        </ScrollView>
+            <LinearGradient colors={['#C9B8FF', ACCENT_PURPLE]} style={styles.scoreCard}>
+              <View style={styles.scoreInline}>
+                <Text style={styles.scoreValue}>%{report.compatibilityScore}</Text>
+                <Text style={styles.scoreLabel}> Uyumluluk Skoru</Text>
+              </View>
+              <Text style={styles.scoreDescription}>{report.scoreSummary}</Text>
+            </LinearGradient>
+
+            <View style={[styles.infoCard, styles.strengthCard]}>
+              <View style={styles.infoTitleRow}>
+                <SectionIconBadge backgroundColor="#4ADE80">
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                </SectionIconBadge>
+                <Text style={styles.infoTitle}>Güçlü Yönlerin</Text>
+              </View>
+              {report.strengths.map((item, index) => (
+                <BulletItem key={`s-${index}`} text={item} color="#4ADE80" />
+              ))}
+            </View>
+
+            <View style={[styles.infoCard, styles.warningCard]}>
+              <View style={styles.infoTitleRow}>
+                <SectionIconBadge backgroundColor="#FB923C">
+                  <Ionicons name="alert" size={14} color="#FFFFFF" />
+                </SectionIconBadge>
+                <Text style={styles.infoTitle}>Eksik Alanlar</Text>
+              </View>
+              {report.gaps.map((item, index) => (
+                <BulletItem key={`g-${index}`} text={item} color="#FB923C" />
+              ))}
+            </View>
+
+            <View style={styles.suggestionCard}>
+              <View style={styles.infoTitleRow}>
+                <Ionicons name="bulb-outline" size={18} color={ACCENT_PURPLE} />
+                <Text style={styles.suggestionSectionTitle}>İyileştirme Önerileri</Text>
+              </View>
+
+              {report.suggestions.map((item, index) => (
+                <View key={`${index}-${item}`} style={styles.suggestionItem}>
+                  <Text style={styles.suggestionIndex}>{String(index + 1).padStart(2, '0')}</Text>
+                  <Text style={styles.suggestionText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Pressable style={styles.actionButton} onPress={() => router.push('/interview-simulation')}>
+              <Text style={styles.actionButtonText}>MÜLAKAT SİMÜLASYONUNA GEÇ</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+        <BottomNavBar variant="docked" />
       </SafeAreaView>
-      <BottomNavBar variant="floating" />
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  pageBackground: { flex: 1 },
+  pageBackground: { flex: 1, backgroundColor: PAGE_BG },
   safeArea: {
     flex: 1,
     paddingHorizontal: 20,
@@ -110,6 +154,11 @@ const styles = StyleSheet.create({
   safeAreaWeb: {
     paddingHorizontal: 18,
   },
+  scrollWrap: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scrollFlex: { flex: 1 },
   scrollContent: {
     paddingBottom: 140,
   },
@@ -141,9 +190,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   nameText: {
-    color: '#E5E7EB',
-    fontSize: 35,
-    fontWeight: '700',
+    color: '#A78BFA',
+    fontSize: 17,
+    fontWeight: '600',
   },
   titleBlock: {
     marginTop: 18,
@@ -161,15 +210,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
+  sectorLine: {
+    marginTop: 4,
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
   scoreCard: {
     borderRadius: 18,
     paddingHorizontal: 22,
     paddingVertical: 22,
   },
-  scoreRow: {
+  scoreInline: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    gap: 4,
   },
   scoreValue: {
     color: '#0F172A',
@@ -196,12 +252,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#15274A',
     borderWidth: 1,
     borderColor: 'rgba(94, 234, 212, 0.3)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4ADE80',
     paddingHorizontal: 18,
     paddingVertical: 16,
     gap: 8,
   },
+  strengthCard: {},
   warningCard: {
     borderColor: 'rgba(251, 146, 60, 0.32)',
+    borderLeftColor: '#FB923C',
   },
   infoTitleRow: {
     flexDirection: 'row',
@@ -212,6 +272,13 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     fontSize: 30,
     fontWeight: '700',
+  },
+  sectionIconBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bulletRow: {
     flexDirection: 'row',
@@ -240,6 +307,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     gap: 10,
+  },
+  suggestionSectionTitle: {
+    color: ACCENT_PURPLE,
+    fontSize: 18,
+    fontWeight: '700',
   },
   suggestionItem: {
     marginTop: 4,

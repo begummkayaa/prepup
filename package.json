@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "adb:reverse-api": "adb reverse tcp:3000 tcp:3000",
+    "adb:reverse-api": "adb reverse tcp:3001 tcp:3001",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",

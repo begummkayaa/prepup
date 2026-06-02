@@ -1,14 +1,25 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackHeader } from '@/components/navigation/back-header';
 import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
 import { useUserProfile } from '@/contexts/user-profile-context';
+import { requestCvAnalysis } from '@/lib/cv-analysis-api';
+import { readPdfAsBase64, readWebFileAsBase64 } from '@/lib/read-pdf-base64';
 
 function isPdf(fileName?: string, mimeType?: string | null, fileUri?: string) {
   const hasPdfExtension = fileName?.toLowerCase().endsWith('.pdf');
@@ -34,15 +45,20 @@ function resolveFileName(fileName?: string, fileUri?: string) {
 
 export default function CvAnalysisScreen() {
   const isWeb = Platform.OS === 'web';
+  const router = useRouter();
   const { profile } = useUserProfile();
   const webDropZoneRef = useRef<View>(null);
   const skipWebClickAfterDropRef = useRef(false);
+  /** Web: sürüklenen gerçek File nesnesi (fetch(uri) bazen yerel dosyayı okuyamaz). */
+  const webDroppedPdfRef = useRef<File | null>(null);
   /** Çarpı (temizle) ile aynı jestte üst alanın dosya seçiciyi açmasını engeller (web + iç içe Pressable). */
   const suppressPickerOpenRef = useRef(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileUri, setFileUri] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [targetRole, setTargetRole] = useState('');
   const [sector, setSector] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const canStartAnalysis = Boolean(fileName && targetRole.trim() && sector.trim());
 
   const pickPdf = useCallback(async () => {
@@ -59,14 +75,73 @@ export default function CvAnalysisScreen() {
     const selectedFile = result.assets[0];
     const safeFileName = resolveFileName(selectedFile.name, selectedFile.uri);
     // Native picker zaten PDF type filtresiyle acildigi icin burada tekrar engelleyici kontrol yapmiyoruz.
+    webDroppedPdfRef.current = null;
     setErrorMessage('');
     setFileName(safeFileName);
+    setFileUri(selectedFile.uri ?? null);
   }, []);
 
   const clearPdf = useCallback(() => {
+    webDroppedPdfRef.current = null;
     setFileName(null);
+    setFileUri(null);
     setErrorMessage('');
   }, []);
+
+  const startAnalysis = useCallback(async () => {
+    if (!canStartAnalysis || submitting) {
+      return;
+    }
+
+    setErrorMessage('');
+    setSubmitting(true);
+    try {
+      let pdfBase64: string;
+      try {
+        // Kullanıcı butona ikinci kez basmasın diye submitting'i hemen kilitliyoruz.
+        if (isWeb && webDroppedPdfRef.current) {
+          pdfBase64 = await readWebFileAsBase64(webDroppedPdfRef.current);
+        } else if (fileUri) {
+          pdfBase64 = await readPdfAsBase64(fileUri);
+        } else {
+          setErrorMessage('Dosya okunamadi. Lutfen PDFi yeniden secin.');
+          return;
+        }
+      } catch {
+        setErrorMessage('PDF okunurken bir hata olustu.');
+        return;
+      }
+
+      const report = await requestCvAnalysis({
+        pdfBase64,
+        targetRole: targetRole.trim(),
+        sector: sector.trim(),
+        fileName: fileName ?? undefined,
+      });
+      router.push({
+        pathname: '/cv-analysis-report',
+        params: {
+          targetRole: targetRole.trim(),
+          sector: sector.trim(),
+          report: encodeURIComponent(JSON.stringify(report)),
+        },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Analiz baslatilamadi.';
+      setErrorMessage(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    canStartAnalysis,
+    submitting,
+    isWeb,
+    fileUri,
+    targetRole,
+    sector,
+    fileName,
+    router,
+  ]);
 
   const openPdfPickerUnlessSuppressed = useCallback(() => {
     if (suppressPickerOpenRef.current) {
@@ -114,6 +189,8 @@ export default function CvAnalysisScreen() {
         setErrorMessage('Sadece PDF dosyasi yukleyebilirsiniz.');
         return;
       }
+      webDroppedPdfRef.current = droppedFile;
+      setFileUri(null);
       setErrorMessage('');
       setFileName(safeFileName);
       skipWebClickAfterDropRef.current = true;
@@ -247,22 +324,23 @@ export default function CvAnalysisScreen() {
             />
           </View>
 
-          {canStartAnalysis ? (
-            <Link
-              href={{
-                pathname: '/cv-analysis-report',
-                params: { targetRole: targetRole.trim() },
-              }}
-              asChild>
-              <Pressable style={styles.actionButton}>
+          <Pressable
+            style={[
+              styles.actionButton,
+              (!canStartAnalysis || submitting) && styles.actionButtonDisabled,
+            ]}
+            disabled={!canStartAnalysis || submitting}
+            onPress={() => void startAnalysis()}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#0F172A" />
+            ) : (
+              <>
+                <Ionicons name="play" size={16} color="#1E1B4B" />
                 <Text style={styles.actionButtonText}>Analizi Başlat</Text>
-              </Pressable>
-            </Link>
-          ) : (
-            <Pressable style={[styles.actionButton, styles.actionButtonDisabled]} disabled>
-              <Text style={styles.actionButtonText}>Analizi Başlat</Text>
-            </Pressable>
-          )}
+              </>
+            )}
+          </Pressable>
         </ScrollView>
         </View>
         <BottomNavBar variant="docked" />
@@ -452,23 +530,20 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginTop: 34,
-    height: 78,
-    borderRadius: 28,
+    borderRadius: 22,
     backgroundColor: '#A78BFA',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 8,
+    gap: 8,
+    paddingVertical: 16,
   },
   actionButtonDisabled: {
     opacity: 0.6,
   },
   actionButtonText: {
-    color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '700',
+    color: '#1E1B4B',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

@@ -89,19 +89,28 @@ router.post('/login', async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { email: emailRaw } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
-    return;
-  }
+  try {
+    const user = await prisma.user.findUnique({ where: { email: emailRaw } });
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
+      return;
+    }
 
-  const cfg = loadConfig();
-  const accessToken = signAccessToken(
-    { sub: user.id, email: user.email },
-    cfg.jwtSecret,
-    cfg.jwtExpiresIn as SignOptions['expiresIn']
-  );
-  res.json({ accessToken, user: publicUser(user) });
+    const cfg = loadConfig();
+    const accessToken = signAccessToken(
+      { sub: user.id, email: user.email },
+      cfg.jwtSecret,
+      cfg.jwtExpiresIn as SignOptions['expiresIn']
+    );
+    res.json({ accessToken, user: publicUser(user) });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("Can't reach database") || msg.includes('connect ECONNREFUSED')) {
+      res.status(503).json({ error: 'Veritabanına ulaşılamıyor, lütfen tekrar dene.' });
+      return;
+    }
+    throw e;
+  }
 });
 
 router.get('/me', requireAuth, async (req, res) => {
@@ -117,13 +126,21 @@ router.get('/me', requireAuth, async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) {
-    res.status(401).json({ error: 'Hesap bulunamadı.' });
-    return;
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      res.status(401).json({ error: 'Hesap bulunamadı.' });
+      return;
+    }
+    res.json({ user: publicUser(user) });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("Can't reach database") || msg.includes('connect ECONNREFUSED')) {
+      res.status(503).json({ error: 'Veritabanına ulaşılamıyor, lütfen tekrar dene.' });
+      return;
+    }
+    throw e;
   }
-
-  res.json({ user: publicUser(user) });
 });
 
 export { router as authRouter };

@@ -56,7 +56,9 @@ export function getApiBaseUrl(): string {
   const fromEnv =
     typeof process.env.EXPO_PUBLIC_API_URL === 'string' ? process.env.EXPO_PUBLIC_API_URL.trim() : '';
 
-  const raw = fromDevFile || fromExtra || fromEnv || 'http://localhost:3000';
+  // Öncelik: dev override (DEV_API_BASE_URL) > .env (EXPO_PUBLIC_*) > manifest extra
+  // Çünkü Expo Go bazen eski manifest extra ile kalabilir; .env ile güncellemek daha kolay.
+  const raw = fromDevFile || fromEnv || fromExtra || 'http://localhost:3001';
   return stripTrailingSlash(adjustBaseUrlForDev(raw));
 }
 

@@ -14,6 +14,10 @@ const repoRoot = path.resolve(backendRoot, '..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
 dotenv.config({ path: path.join(backendRoot, '.env') });
 
+console.info(
+  `[prepup-api] GEMINI_MODEL=${(process.env.GEMINI_MODEL ?? 'gemini-2.5-flash').trim() || 'gemini-2.5-flash'} — .env değiştirdiysen backend'i yeniden başlat`
+);
+
 const config = loadConfig();
 const app = createApp(config);
 

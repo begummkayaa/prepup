@@ -8,7 +8,7 @@ const appJson = require('./app.json');
 const apiBaseUrl =
   (process.env.EXPO_PUBLIC_API_URL && process.env.EXPO_PUBLIC_API_URL.trim()) ||
   (appJson.expo.extra && appJson.expo.extra.apiBaseUrl) ||
-  'http://localhost:3000';
+  'http://localhost:3001';
 
 /** @type {import('expo/config').ExpoConfig} */
 const expo = {

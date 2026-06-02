@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,20 +9,32 @@ import { BackHeader } from '@/components/navigation/back-header';
 import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
 import { useInterviewAccess } from '@/contexts/interview-access-context';
 import { useUserProfile } from '@/contexts/user-profile-context';
+import { normalizeSummary } from '@/lib/interview-api';
 
 export default function InterviewSummaryScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
   const { profile } = useUserProfile();
   const { markInterviewSimulationCompleted } = useInterviewAccess();
+  const params = useLocalSearchParams<{ targetRole?: string; summary?: string }>();
+
+  const targetRole = params.targetRole?.trim() || 'Yazılım Geliştirici';
+  const summary = normalizeSummary(
+    params.summary ? JSON.parse(decodeURIComponent(params.summary)) : null,
+  );
 
   useEffect(() => {
     void markInterviewSimulationCompleted();
   }, [markInterviewSimulationCompleted]);
 
+  const scoreColor =
+    summary.score >= 80 ? '#86EFAC' : summary.score >= 60 ? '#FCD34D' : '#F87171';
+
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
-      <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]} edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        style={[styles.safeArea, isWeb && styles.safeAreaWeb]}
+        edges={['top', 'left', 'right']}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, isWeb && styles.scrollContentWeb]}
           showsVerticalScrollIndicator={false}>
@@ -43,68 +55,80 @@ export default function InterviewSummaryScreen() {
             <View style={styles.titleUnderline} />
           </View>
 
+          <Text style={styles.roleLabel}>{targetRole} • Mülakat Simülasyonu</Text>
+
           <LinearGradient colors={['#C4B5FD', '#A78BFA']} style={styles.scoreCard}>
             <View style={styles.scoreRingWrap}>
-              <View style={styles.scoreRing}>
-                <Text style={styles.scoreValue}>85/100</Text>
+              <View style={[styles.scoreRing, { borderColor: scoreColor }]}>
+                <Text style={styles.scoreValue}>{summary.score}/100</Text>
               </View>
             </View>
             <Text style={styles.scoreTitle}>Genel Başarı Skoru</Text>
-            <Text style={styles.scoreDesc}>
-              Harika bir mülakat geçti. Teknik yetkinliklerin oldukça güçlü.
-            </Text>
+            <Text style={styles.scoreDesc}>{summary.overallFeedback}</Text>
           </LinearGradient>
 
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Soru Analizi</Text>
-            <Text style={styles.sectionLink}>DETAYLI İNCELEME</Text>
-          </View>
-
-          <View style={styles.analysisCard}>
-            <View style={styles.questionRow}>
-              <View style={styles.checkCircle}>
-                <Ionicons name="checkmark" size={14} color="#0F172A" />
+          {summary.questionAnalysis.length > 0 && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Soru Analizi</Text>
               </View>
-              <View style={styles.questionTextWrap}>
-                <Text style={styles.questionLabel}>SORU</Text>
-                <Text style={styles.questionText}>En büyük teknik zorluğun neydi?</Text>
+
+              {summary.questionAnalysis.map((qa, idx) => (
+                <View key={idx} style={styles.analysisCard}>
+                  <View style={styles.questionRow}>
+                    <View style={styles.checkCircle}>
+                      <Text style={styles.checkNum}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.questionTextWrap}>
+                      <Text style={styles.questionLabel}>SORU</Text>
+                      <Text style={styles.questionText}>{qa.question}</Text>
+                    </View>
+                  </View>
+
+                  {qa.answer ? (
+                    <View style={styles.answerBlock}>
+                      <Text style={styles.fieldLabel}>VERİLEN CEVAP</Text>
+                      <View style={styles.answerBox}>
+                        <Text style={styles.answerText} numberOfLines={3}>
+                          {qa.answer}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {qa.feedback ? (
+                    <View style={styles.expectedBlock}>
+                      <Text style={styles.fieldLabel}>GERİ BİLDİRİM</Text>
+                      <Text style={styles.expectedText}>{qa.feedback}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </>
+          )}
+
+          {summary.tips.length > 0 && (
+            <>
+              <Text style={styles.sectionTitleBig}>Gelişim Tavsiyeleri</Text>
+              <View style={styles.tipsCard}>
+                {summary.tips.map((tip, idx) => (
+                  <View key={idx} style={styles.tipRow}>
+                    <View style={styles.tipDot} />
+                    <Text style={styles.tipText}>{tip}</Text>
+                  </View>
+                ))}
               </View>
-            </View>
+            </>
+          )}
 
-            <View style={styles.answerBlock}>
-              <Text style={styles.answerLabel}>VERİLEN CEVAP</Text>
-              <View style={styles.answerBox}>
-                <Text style={styles.answerText} numberOfLines={2}>
-                  Yapay zeka mülakat akışını yönetmek ve gerçek zamanlı feedback mekanizmasını optimize etmek...
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.expectedBlock}>
-              <Text style={styles.answerLabel}>BEKLENEN CEVAP</Text>
-              <Text style={styles.expectedText}>
-                Projenin mimari yapısını ve vektör tabanlı bellek kullanımını daha detaylı vurgulayabilirsin.
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitleBig}>Gelişim Tavsiyeleri</Text>
-          <View style={styles.tipsCard}>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: '#F472B6' }]} />
-              <Text style={styles.tipText}>Teknik terimleri daha net açıkla</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: '#F472B6' }]} />
-              <Text style={styles.tipText}>Göz temasını simüle eden vurgular yap</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: '#F472B6' }]} />
-              <Text style={styles.tipText}>Cevap süreni 2 dakikanın altında tutmaya çalış</Text>
-            </View>
-          </View>
-
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/interview-simulation')}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() =>
+              router.push({
+                pathname: '/interview-simulation',
+                params: { targetRole },
+              })
+            }>
             <MaterialIcons name="replay" size={18} color="#0F172A" />
             <Text style={styles.primaryButtonText}>Simülasyonu Tekrar Başlat</Text>
           </Pressable>
@@ -134,12 +158,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(167, 139, 250, 0.26)',
   },
-  welcomeText: { color: '#8B97B1', fontSize: 9, fontWeight: '500', letterSpacing: 1.2, textTransform: 'uppercase' },
+  welcomeText: {
+    color: '#8B97B1',
+    fontSize: 9,
+    fontWeight: '500',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   nameText: { color: '#A78BFA', fontSize: 17, fontWeight: '600' },
 
   titleRow: { marginTop: 18 },
   title: { color: '#F8FAFC', fontSize: 40, fontWeight: '800' },
   titleUnderline: { marginTop: 8, width: 36, height: 3, borderRadius: 2, backgroundColor: '#C4B5FD' },
+  roleLabel: { marginTop: 8, color: '#64748B', fontSize: 13, fontWeight: '500' },
 
   scoreCard: { marginTop: 16, borderRadius: 22, paddingHorizontal: 20, paddingVertical: 18 },
   scoreRingWrap: { alignItems: 'center' },
@@ -157,9 +188,8 @@ const styles = StyleSheet.create({
   scoreTitle: { marginTop: 12, color: '#0F172A', fontSize: 18, fontWeight: '800', textAlign: 'center' },
   scoreDesc: { marginTop: 8, color: 'rgba(15, 23, 42, 0.8)', fontSize: 13, lineHeight: 20, textAlign: 'center' },
 
-  sectionRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { color: '#E2E8F0', fontSize: 18, fontWeight: '800' },
-  sectionLink: { color: '#94A3B8', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
 
   analysisCard: {
     marginTop: 10,
@@ -171,13 +201,22 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   questionRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  checkCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#86EFAC', alignItems: 'center', justifyContent: 'center' },
+  checkCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#86EFAC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checkNum: { color: '#0F172A', fontSize: 12, fontWeight: '800' },
   questionTextWrap: { flex: 1, gap: 4 },
   questionLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-  questionText: { color: '#E2E8F0', fontSize: 16, fontWeight: '700' },
+  questionText: { color: '#E2E8F0', fontSize: 15, fontWeight: '700', lineHeight: 22 },
 
   answerBlock: { gap: 8 },
-  answerLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  fieldLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
   answerBox: { borderRadius: 12, backgroundColor: '#0B1226', paddingHorizontal: 12, paddingVertical: 12 },
   answerText: { color: '#C8D1E1', fontSize: 13, lineHeight: 18 },
   expectedBlock: { gap: 6 },
@@ -193,9 +232,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  tipRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tipDot: { width: 7, height: 7, borderRadius: 999 },
-  tipText: { color: '#C8D1E1', fontSize: 13, fontWeight: '600' },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  tipDot: { marginTop: 6, width: 7, height: 7, borderRadius: 999, backgroundColor: '#F472B6', flexShrink: 0 },
+  tipText: { flex: 1, color: '#C8D1E1', fontSize: 13, fontWeight: '600', lineHeight: 20 },
 
   primaryButton: {
     marginTop: 16,
@@ -209,4 +248,3 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { color: '#0F172A', fontSize: 14, fontWeight: '800' },
 });
-

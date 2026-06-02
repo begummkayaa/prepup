@@ -12,7 +12,22 @@ export function createApp(config: AppConfig) {
   }
 
   app.use(helmet());
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '25mb' }));
+
+  // Debug: /api istekleri telefondan geliyor mu, ne kadar sürüyor gör.
+  app.use((req, res, next) => {
+    if (!req.path.startsWith(config.apiPrefix)) {
+      next();
+      return;
+    }
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - startedAt;
+      // eslint-disable-next-line no-console
+      console.info(`[api] ${req.method} ${req.path} -> ${res.statusCode} (${ms}ms)`);
+    });
+    next();
+  });
 
   const corsOptions: cors.CorsOptions =
     config.corsOrigins.includes('*') || config.corsOrigins.length === 0

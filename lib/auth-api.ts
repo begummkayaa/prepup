@@ -1,22 +1,45 @@
 import { getApiUrl } from '@/lib/api-config';
 
+const FETCH_TIMEOUT_MS = 22_000;
+
 function mapNetworkError(err: unknown, requestUrl: string): Error {
+  const isAbort =
+    (typeof DOMException !== 'undefined' &&
+      err instanceof DOMException &&
+      err.name === 'AbortError') ||
+    (err instanceof Error && err.name === 'AbortError');
+  if (isAbort) {
+    return new Error(
+      `Bağlantı zaman aşımı (${FETCH_TIMEOUT_MS / 1000}s).\nAdres: ${requestUrl}\n` +
+        'PC’de backend çalışıyor mu (`backend` klasöründe `npm run dev`)? PostgreSQL açık mı?\n' +
+        'Telefon ile bilgisayar aynı Wi‑Fi’da mı? `.env` içindeki EXPO_PUBLIC_API_URL bilgisayarının güncel IPv4 adresi mi?\n' +
+        'USB ile bağlıysan: `npm run adb:reverse-api` sonra `.env` içinde `EXPO_PUBLIC_API_URL=http://127.0.0.1:3001` kullan.'
+    );
+  }
+
   const isNetworkFailure =
     (err instanceof TypeError && String(err.message).toLowerCase().includes('network')) ||
     (err instanceof Error && /network request failed/i.test(err.message));
   if (isNetworkFailure) {
     const hint =
-      'Bilgisayarda backend çalışıyor mu (backend: npm run dev)? Güvenlik duvarında TCP 3000 açık mı? VPN kapat. USB: önce npm run adb:reverse-api, sonra constants/dev-api.ts içinde http://127.0.0.1:3000';
+      'Bilgisayarda backend çalışıyor mu (backend: npm run dev)? `.env` içindeki EXPO_PUBLIC_API_URL, ipconfig IPv4 ile aynı mı (port 3001)? Güvenlik duvarında TCP 3001 açık mı? VPN kapat. USB: npm run adb:reverse-api, sonra EXPO_PUBLIC_API_URL=http://127.0.0.1:3001';
     return new Error(`Sunucuya ulaşılamıyor.\nİstek: ${requestUrl}\n${hint}`);
   }
   return err instanceof Error ? err : new Error('İstek başarısız.');
 }
 
 async function fetchApi(input: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    return await fetch(input, init);
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
   } catch (e) {
     throw mapNetworkError(e, input);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
