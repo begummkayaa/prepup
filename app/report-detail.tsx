@@ -1,7 +1,9 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -13,8 +15,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useInterviewAccess } from '@/contexts/interview-access-context';
-import type { CvReportPayload, InterviewReportPayload } from '@/lib/report-detail-mocks';
-import { getReportDetailMock } from '@/lib/report-detail-mocks';
+import {
+  fetchHistoryDetail,
+  type CvDetailPayload,
+  type InterviewDetailPayload,
+  type ReportDetailPayload,
+} from '@/lib/history-api';
 
 const BG_DEEP = '#0D0D17';
 const CARD_BG = '#161626';
@@ -24,13 +30,32 @@ const MUTED = '#8E8E93';
 export default function ReportDetailScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
-  const rawId = useLocalSearchParams<{ id?: string | string[] }>().id;
+  const params = useLocalSearchParams<{ id?: string | string[]; type?: string | string[] }>();
+  const rawId = params.id;
+  const rawType = params.type;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
-  const report = getReportDetailMock(id);
+  const type = (Array.isArray(rawType) ? rawType[0] : rawType) as 'interview' | 'cv' | undefined;
+
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const cardWidth = Math.min(width - 40, 520);
   const { hasCompletedInterviewSimulation, isLoading: interviewLoading } = useInterviewAccess();
+
+  const [report, setReport] = useState<ReportDetailPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id || !type) {
+      setError('Geçersiz rapor parametresi.');
+      setLoading(false);
+      return;
+    }
+    fetchHistoryDetail(type, id)
+      .then(setReport)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Rapor alınamadı.'))
+      .finally(() => setLoading(false));
+  }, [id, type]);
 
   const retryInterview = () => {
     if (interviewLoading) {
@@ -44,25 +69,48 @@ export default function ReportDetailScreen() {
     }
   };
 
-  if (!report) {
+  const topBar = (
+    <View style={styles.topBar}>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ pressed, hovered }) => [
+          styles.iconBtn,
+          pressed && styles.pressed,
+          isWeb && hovered && styles.hover,
+        ]}
+        hitSlop={12}>
+        <Ionicons name="chevron-back" size={22} color="#C4B5FD" />
+      </Pressable>
+      <Text style={styles.topTitle}>Rapor Detayı</Text>
+      <View style={styles.topSpacer} />
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <LinearGradient colors={['#020617', BG_DEEP]} style={styles.page}>
+        <SafeAreaView style={[styles.safe, isWeb && styles.safeWeb]}>
+          {topBar}
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#C4B5FD" />
+            <Text style={styles.stateText}>Rapor yükleniyor…</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  if (error || !report) {
     return (
       <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.page}>
         <SafeAreaView style={[styles.safe, isWeb && styles.safeWeb]}>
-          <View style={styles.topBar}>
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed, hovered }) => [
-                styles.iconBtn,
-                pressed && styles.pressed,
-                isWeb && hovered && styles.hover,
-              ]}
-              hitSlop={12}>
-              <Ionicons name="chevron-back" size={22} color="#C4B5FD" />
-            </Pressable>
-            <Text style={styles.topTitle}>Rapor Detayı</Text>
-            <View style={styles.topSpacer} />
+          {topBar}
+          <View style={styles.centerState}>
+            <Ionicons name="alert-circle-outline" size={40} color="#F87171" />
+            <Text style={[styles.stateText, { color: '#F87171' }]}>
+              {error ?? 'Rapor bulunamadı.'}
+            </Text>
           </View>
-          <Text style={styles.emptyText}>Rapor bulunamadı.</Text>
         </SafeAreaView>
       </LinearGradient>
     );
@@ -71,20 +119,7 @@ export default function ReportDetailScreen() {
   return (
     <LinearGradient colors={['#020617', BG_DEEP]} style={styles.page}>
       <SafeAreaView style={[styles.safe, isWeb && styles.safeWeb]} edges={['top', 'left', 'right']}>
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed, hovered }) => [
-              styles.iconBtn,
-              pressed && styles.pressed,
-              isWeb && hovered && styles.hover,
-            ]}
-            hitSlop={12}>
-            <Ionicons name="chevron-back" size={22} color="#C4B5FD" />
-          </Pressable>
-          <Text style={styles.topTitle}>Rapor Detayı</Text>
-          <View style={styles.topSpacer} />
-        </View>
+        {topBar}
 
         <ScrollView
           style={styles.scrollFlex}
@@ -101,13 +136,13 @@ export default function ReportDetailScreen() {
         <View style={[styles.footerSafe, { paddingBottom: Math.max(insets.bottom, 14) }]}>
           {report.kind === 'interview' ? (
             <Pressable onPress={retryInterview} style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaPressed]}>
-              <Text style={styles.ctaTextInterview}>Tekrar Pratik Yap</Text>
+              <Text style={styles.ctaText}>Tekrar Pratik Yap</Text>
             </Pressable>
           ) : (
             <Pressable
               onPress={() => router.push('/cv-analysis')}
               style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaPressed]}>
-              <Text style={styles.ctaTextInterview}>Yeni CV Analizi</Text>
+              <Text style={styles.ctaText}>Yeni CV Analizi</Text>
             </Pressable>
           )}
         </View>
@@ -120,7 +155,7 @@ function InterviewDetailBody({
   report,
   cardInnerWidth,
 }: {
-  report: InterviewReportPayload;
+  report: InterviewDetailPayload;
   cardInnerWidth: number;
 }) {
   const pct = Math.min(100, Math.max(0, report.score));
@@ -146,6 +181,16 @@ function InterviewDetailBody({
         </View>
       </LinearGradient>
 
+      {report.overallFeedback ? (
+        <View style={styles.overallCard}>
+          <View style={styles.aiLabelRow}>
+            <MaterialIcons name="auto-awesome" size={14} color={ACCENT} />
+            <Text style={styles.aiLabel}>GENEL DEĞERLENDİRME</Text>
+          </View>
+          <Text style={styles.overallText}>{report.overallFeedback}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitle}>Mülakat Analizi</Text>
         <View style={styles.badge}>
@@ -165,23 +210,43 @@ function InterviewDetailBody({
             </View>
           </View>
 
-          <View style={styles.answerBlock}>
-            <View style={styles.answerLabelRow}>
-              <Ionicons name="person-circle-outline" size={16} color={MUTED} />
-              <Text style={styles.answerLabel}>CEVABINIZ</Text>
+          {q.answer ? (
+            <View style={styles.answerBlock}>
+              <View style={styles.answerLabelRow}>
+                <Ionicons name="person-circle-outline" size={16} color={MUTED} />
+                <Text style={styles.answerLabel}>CEVABINIZ</Text>
+              </View>
+              <Text style={styles.answerItalic}>{q.answer}</Text>
             </View>
-            <Text style={styles.answerItalic}>{q.answer}</Text>
-          </View>
+          ) : null}
 
-          <View style={styles.aiBox}>
-            <View style={styles.aiLabelRow}>
-              <MaterialIcons name="auto-awesome" size={14} color={ACCENT} />
-              <Text style={styles.aiLabel}>AI GERİ BİLDİRİMİ</Text>
+          {q.feedback ? (
+            <View style={styles.aiBox}>
+              <View style={styles.aiLabelRow}>
+                <MaterialIcons name="auto-awesome" size={14} color={ACCENT} />
+                <Text style={styles.aiLabel}>AI GERİ BİLDİRİMİ</Text>
+              </View>
+              <Text style={styles.aiBody}>{q.feedback}</Text>
             </View>
-            <Text style={styles.aiBody}>{q.aiFeedback}</Text>
-          </View>
+          ) : null}
         </View>
       ))}
+
+      {report.tips.length > 0 ? (
+        <>
+          <View style={[styles.sectionHead, { marginTop: 8 }]}>
+            <Text style={styles.sectionTitle}>Gelişim Tavsiyeleri</Text>
+          </View>
+          <View style={styles.tipsCard}>
+            {report.tips.map((tip, idx) => (
+              <View key={idx} style={styles.tipRow}>
+                <View style={styles.tipDot} />
+                <Text style={styles.tipText}>{tip}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
     </>
   );
 }
@@ -190,7 +255,7 @@ function CvDetailBody({
   report,
   cardInnerWidth,
 }: {
-  report: CvReportPayload;
+  report: CvDetailPayload;
   cardInnerWidth: number;
 }) {
   const pct = Math.min(100, Math.max(0, report.matchPercent));
@@ -213,40 +278,48 @@ function CvDetailBody({
         </View>
       </LinearGradient>
 
-      <View style={styles.sectionHead}>
-        <Text style={styles.sectionTitle}>CV Analizi</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{report.highlights.length} Alan</Text>
+      {report.scoreSummary ? (
+        <View style={styles.overallCard}>
+          <View style={styles.aiLabelRow}>
+            <MaterialIcons name="auto-awesome" size={14} color={ACCENT} />
+            <Text style={styles.aiLabel}>ÖZET</Text>
+          </View>
+          <Text style={styles.overallText}>{report.scoreSummary}</Text>
         </View>
+      ) : null}
+
+      <CvSection title="Güçlü Yönler" items={report.strengths} color="#4ADE80" icon="checkmark-circle" />
+      <CvSection title="Eksik Alanlar" items={report.gaps} color="#FB923C" icon="alert-circle" />
+      <CvSection title="İyileştirme Önerileri" items={report.suggestions} color={ACCENT} icon="bulb" />
+    </>
+  );
+}
+
+function CvSection({
+  title,
+  items,
+  color,
+  icon,
+}: {
+  title: string;
+  items: string[];
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}) {
+  if (!items.length) return null;
+  return (
+    <View style={[styles.cvSection, { borderLeftColor: color }]}>
+      <View style={styles.cvSectionHeader}>
+        <Ionicons name={icon} size={16} color={color} />
+        <Text style={[styles.cvSectionTitle, { color }]}>{title}</Text>
       </View>
-
-      {report.highlights.map((h, i) => (
-        <View key={i} style={styles.qBlock}>
-          <View style={styles.qTopRow}>
-            <View style={styles.qNumCircle}>
-              <Text style={styles.qNumText}>{String(i + 1).padStart(2, '0')}</Text>
-            </View>
-            <View style={styles.qContent}>
-              <Text style={styles.qLabel}>BAŞLIK</Text>
-              <Text style={styles.qText}>{h.title}</Text>
-            </View>
-          </View>
-
-          <View style={styles.answerBlock}>
-            <Text style={styles.answerLabelRowPlain}>ÖZET</Text>
-            <Text style={styles.cvSummaryBody}>{h.summary}</Text>
-          </View>
-
-          <View style={styles.aiBox}>
-            <View style={styles.aiLabelRow}>
-              <MaterialIcons name="auto-awesome" size={14} color={ACCENT} />
-              <Text style={styles.aiLabel}>AI ÖNERİSİ</Text>
-            </View>
-            <Text style={styles.aiBody}>{h.aiSuggestion}</Text>
-          </View>
+      {items.map((item, i) => (
+        <View key={i} style={styles.cvSectionItem}>
+          <View style={[styles.cvDot, { backgroundColor: color }]} />
+          <Text style={styles.cvItemText}>{item}</Text>
         </View>
       ))}
-    </>
+    </View>
   );
 }
 
@@ -278,7 +351,15 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.82 },
   topSpacer: { width: 40, height: 40 },
-  emptyText: { color: MUTED, marginTop: 24, fontSize: 15, textAlign: 'center' },
+
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+  },
+  stateText: { color: MUTED, fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
   scrollFlex: { flex: 1 },
   scroll: { paddingBottom: 24 },
@@ -288,7 +369,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(168, 144, 254, 0.12)',
-    marginBottom: 22,
+    marginBottom: 14,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   summaryCol: { flex: 1 },
@@ -315,6 +396,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: ACCENT,
   },
+
+  overallCard: {
+    marginBottom: 18,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    padding: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: ACCENT,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 144, 254, 0.2)',
+    borderRightColor: 'rgba(148, 163, 184, 0.12)',
+    borderTopColor: 'rgba(148, 163, 184, 0.12)',
+    borderBottomColor: 'rgba(148, 163, 184, 0.12)',
+  },
+  overallText: { color: '#C8D1E1', fontSize: 14, lineHeight: 22, fontWeight: '500', marginTop: 8 },
 
   sectionHead: {
     flexDirection: 'row',
@@ -352,13 +448,6 @@ const styles = StyleSheet.create({
 
   answerBlock: { marginTop: 14, marginLeft: 48 },
   answerLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  answerLabelRowPlain: {
-    color: MUTED,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
   answerLabel: { color: MUTED, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
   answerItalic: {
     color: '#B8B8C6',
@@ -367,7 +456,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '500',
   },
-  cvSummaryBody: { color: '#E2E8F0', fontSize: 14, lineHeight: 22, fontWeight: '500' },
 
   aiBox: {
     marginTop: 14,
@@ -387,6 +475,36 @@ const styles = StyleSheet.create({
   aiLabel: { color: ACCENT, fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   aiBody: { color: '#FFFFFF', fontSize: 14, lineHeight: 22, fontWeight: '600' },
 
+  tipsCard: {
+    marginBottom: 20,
+    borderRadius: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.16)',
+    padding: 16,
+    gap: 10,
+  },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  tipDot: { marginTop: 6, width: 7, height: 7, borderRadius: 999, backgroundColor: '#F472B6', flexShrink: 0 },
+  tipText: { flex: 1, color: '#C8D1E1', fontSize: 13, fontWeight: '600', lineHeight: 20 },
+
+  cvSection: {
+    marginBottom: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.14)',
+    borderLeftWidth: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  cvSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  cvSectionTitle: { fontSize: 16, fontWeight: '800' },
+  cvSectionItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  cvDot: { marginTop: 8, width: 6, height: 6, borderRadius: 999, flexShrink: 0 },
+  cvItemText: { flex: 1, color: '#C8D1E1', fontSize: 14, lineHeight: 22, fontWeight: '500' },
+
   footerSafe: {
     paddingTop: 10,
     backgroundColor: 'transparent',
@@ -400,5 +518,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaPressed: { opacity: 0.9 },
-  ctaTextInterview: { color: '#12121C', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
+  ctaText: { color: '#12121C', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
 });

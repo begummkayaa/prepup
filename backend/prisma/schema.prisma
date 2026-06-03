@@ -14,10 +14,39 @@ model AppMeta {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  fullName     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String
+  fullName          String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  interviewSessions InterviewSession[]
+  cvAnalyses        CvAnalysis[]
+}
+
+model InterviewSession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            String
+  sector          String   @default("")
+  score           Int
+  overallFeedback String
+  questions       Json
+  tips            Json
+  createdAt       DateTime @default(now())
+}
+
+model CvAnalysis {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole         String
+  sector             String   @default("")
+  compatibilityScore Int
+  scoreSummary       String
+  strengths          Json
+  gaps               Json
+  suggestions        Json
+  createdAt          DateTime @default(now())
 }

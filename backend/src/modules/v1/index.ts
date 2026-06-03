@@ -4,6 +4,7 @@ import { authRouter } from '../auth/auth.routes.js';
 import { cvRouter } from '../cv/cv.routes.js';
 import { databaseRouter } from '../database/database.routes.js';
 import { healthRouter } from '../health/health.routes.js';
+import { historyRouter } from '../history/history.routes.js';
 import { interviewRouter } from '../interview/interview.routes.js';
 import { systemRouter } from '../system/system.routes.js';
 
@@ -22,6 +23,9 @@ router.get('/', (_req, res) => {
       '/v1/cv/analyze',
       '/v1/interview/next-question',
       '/v1/interview/summary',
+      '/v1/history',
+      '/v1/history/interview/:id',
+      '/v1/history/cv/:id',
     ],
   });
 });
@@ -32,6 +36,7 @@ router.use('/system', systemRouter);
 router.use('/database', databaseRouter);
 router.use('/cv', cvRouter);
 router.use('/interview', interviewRouter);
+router.use('/history', historyRouter);
 
 export const v1Module: RouteModule = {
   basePath: '/v1',

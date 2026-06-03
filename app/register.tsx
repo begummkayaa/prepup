@@ -80,7 +80,7 @@ export default function RegisterScreen() {
             <View style={styles.inner}>
               <View style={styles.logoRow}>
                 <Ionicons name="document-text" size={22} color={ACCENT} />
-                <Text style={styles.logoText}>PrepUp</Text>
+                <Text style={styles.logoText}>Prep<Text style={styles.logoAccent}>Up</Text></Text>
               </View>
 
               <Text style={styles.title}>
@@ -198,10 +198,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoText: {
-    color: ACCENT,
+    color: '#F1F5F9',
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  logoAccent: {
+    color: ACCENT,
   },
   title: {
     fontSize: 28,

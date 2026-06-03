@@ -1,29 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { Platform } from 'react-native';
+
+import { WebNavBar } from '@/components/navigation/web-nav-bar';
+
+const isWeb = Platform.OS === 'web';
 
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={isWeb ? (props) => <WebNavBar {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          left: 20,
-          right: 20,
-          bottom: 22,
-          height: 66,
-          borderRadius: 24,
-          backgroundColor: '#0F172A',
-          borderTopWidth: 0,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.5,
-          shadowRadius: 15,
-          paddingBottom: 10,
-          paddingTop: 6,
-        },
+        tabBarStyle: isWeb
+          ? { display: 'none' }
+          : {
+              position: 'absolute',
+              left: 20,
+              right: 20,
+              bottom: 22,
+              height: 66,
+              borderRadius: 24,
+              backgroundColor: '#0F172A',
+              borderTopWidth: 0,
+              elevation: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.5,
+              shadowRadius: 15,
+              paddingBottom: 10,
+              paddingTop: 6,
+            },
         tabBarLabelStyle: {
           fontSize: 9,
           fontWeight: '700',

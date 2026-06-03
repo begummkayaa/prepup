@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/lib/api-config';
+import { getStoredToken } from '@/lib/auth-token';
 import type { CvAnalysisAiReport } from '@/lib/cv-analysis-types';
 import { normalizeCvAnalysisReport } from '@/lib/cv-analysis-types';
 
@@ -18,12 +19,15 @@ export async function requestCvAnalysis(payload: {
   // Kuyruk + Gemini cevabı toplamda bazen 70s'i geçebiliyor.
   const timeoutMs = 120_000;
   const t = setTimeout(() => controller.abort(), timeoutMs);
+  const token = await getStoredToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   let res: Response;
   try {
     res = await fetch(getApiUrl('/v1/cv/analyze'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
       signal: controller.signal,
     });

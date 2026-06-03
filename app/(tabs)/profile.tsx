@@ -36,20 +36,7 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             <View style={styles.topBar}>
-              <Pressable
-                onPress={() => localRouter.back()}
-                style={({ pressed, hovered }) => [
-                  styles.iconBtn,
-                  pressed && styles.iconBtnPressed,
-                  isWeb && hovered && styles.iconBtnHover,
-                ]}
-                hitSlop={12}>
-                <Ionicons name="chevron-back" size={22} color="#C4B5FD" />
-              </Pressable>
-
               <Text style={styles.topTitle}>Profil</Text>
-
-              <View style={styles.topRightSpacer} />
             </View>
 
             <View style={styles.hero}>
@@ -85,32 +72,6 @@ export default function ProfileScreen() {
                 <Ionicons name="chevron-forward" size={18} color="#64748B" />
               </Pressable>
 
-              <View style={[styles.card, styles.cardTall]}>
-                <View style={styles.cardLeft}>
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="document-text" size={18} color="#C4B5FD" />
-                  </View>
-                  <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>Özgeçmişim (PDF)</Text>
-                  </View>
-                </View>
-
-                <View style={styles.pdfRow}>
-                  <Text style={styles.pdfName} numberOfLines={1}>
-                    begum-kaya-cv.pdf
-                  </Text>
-                  <Pressable
-                    onPress={() => {}}
-                    style={({ pressed, hovered }) => [
-                      styles.pdfDownloadBtn,
-                      pressed && styles.pdfDownloadPressed,
-                      isWeb && hovered && styles.pdfDownloadHover,
-                    ]}
-                    hitSlop={10}>
-                    <Ionicons name="download-outline" size={18} color="#C4B5FD" />
-                  </Pressable>
-                </View>
-              </View>
 
               <Pressable
                 onPress={() => localRouter.push('/forgot-password')}
@@ -132,24 +93,24 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.logoutWrap}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Oturumu kapat"
-                hitSlop={{ top: 16, bottom: 24, left: 20, right: 20 }}
-                android_ripple={{ color: 'rgba(251, 113, 133, 0.25)' }}
-                onPress={() => {
-                  void handleLogout();
-                }}
-                style={({ pressed, hovered }) => [
-                  styles.logoutBtn,
-                  pressed && styles.logoutPressed,
-                  isWeb && hovered && styles.logoutHover,
-                  isWeb && styles.logoutWeb,
-                ]}>
-                <Text style={styles.logoutText}>OTURUMU KAPAT</Text>
-              </Pressable>
-            </View>
+            {!isWeb && (
+              <View style={styles.logoutWrap}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Oturumu kapat"
+                  hitSlop={{ top: 16, bottom: 24, left: 20, right: 20 }}
+                  android_ripple={{ color: 'rgba(251, 113, 133, 0.25)' }}
+                  onPress={() => {
+                    void handleLogout();
+                  }}
+                  style={({ pressed }) => [
+                    styles.logoutBtn,
+                    pressed && styles.logoutPressed,
+                  ]}>
+                  <Text style={styles.logoutText}>OTURUMU KAPAT</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -160,12 +121,12 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: 18, paddingTop: 10 },
-  safeAreaWeb: { paddingHorizontal: 18 },
+  safeAreaWeb: { paddingHorizontal: 18, paddingTop: 68 },
   scrollContent: { flexGrow: 1 },
   content: { width: '100%', maxWidth: 520, alignSelf: 'center' },
 
   topBar: { marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { color: '#F8FAFC', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  topTitle: { color: '#F8FAFC', fontSize: 32, fontWeight: '800' },
   iconBtn: {
     width: 40,
     height: 40,

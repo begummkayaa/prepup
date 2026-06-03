@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type BackHeaderProps = {
   title?: string;
@@ -8,9 +8,10 @@ type BackHeaderProps = {
 
 export function BackHeader({ title }: BackHeaderProps) {
   const router = useRouter();
+  const isWeb = Platform.OS === 'web';
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, isWeb && styles.rowWeb]}>
       <Pressable
         onPress={() => router.back()}
         style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
@@ -28,6 +29,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     gap: 6,
+  },
+  rowWeb: {
+    marginTop: 0,
   },
   backBtn: {
     width: 38,

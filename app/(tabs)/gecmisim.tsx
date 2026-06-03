@@ -1,164 +1,170 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useUserProfile } from '@/contexts/user-profile-context';
+import { fetchHistory, type HistoryListItem } from '@/lib/history-api';
 
-type HistoryType = 'all' | 'cv' | 'interview';
-
-type HistoryItem = {
-  id: string;
-  type: Exclude<HistoryType, 'all'>;
-  title: string;
-  dateLabel: string;
-  rightLabel: string;
-  icon: 'chatbubble' | 'document-text';
-};
-
-const ITEMS: HistoryItem[] = [
-  {
-    id: 'interview-1',
-    type: 'interview',
-    title: 'Yazılım Geliştirici\nMülakatı',
-    dateLabel: '14 Mart 2024',
-    rightLabel: '85/100',
-    icon: 'chatbubble',
-  },
-  {
-    id: 'cv-1',
-    type: 'cv',
-    title: 'Yazılım\nMühendisi\nCV Analizi',
-    dateLabel: '12 Mart 2024',
-    rightLabel: '%82 Uyumluluk',
-    icon: 'document-text',
-  },
-  {
-    id: 'interview-2',
-    type: 'interview',
-    title: 'Ürün Yönetimi\nMülakatı',
-    dateLabel: '8 Mart 2024',
-    rightLabel: '72/100',
-    icon: 'chatbubble',
-  },
-  {
-    id: 'cv-2',
-    type: 'cv',
-    title: 'Veri Analisti\nCV\nİncelemesi',
-    dateLabel: '5 Mart 2024',
-    rightLabel: '%91 Uyumluluk',
-    icon: 'document-text',
-  },
-];
+type HistoryFilter = 'all' | 'cv' | 'interview';
 
 export default function GecmisimScreen() {
   const isWeb = Platform.OS === 'web';
   const router = useRouter();
-  const { profile } = useUserProfile();
-  const [activeFilter, setActiveFilter] = useState<HistoryType>('all');
+  const { profile, isAuthenticated } = useUserProfile();
+  const [activeFilter, setActiveFilter] = useState<HistoryFilter>('all');
+  const [items, setItems] = useState<HistoryListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadHistory = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setError(null);
+      const data = await fetchHistory();
+      setItems(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Geçmiş alınamadı.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    void loadHistory();
+  }, [loadHistory]);
 
   const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') {
-      return ITEMS;
-    }
-    return ITEMS.filter((item) => item.type === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === 'all') return items;
+    return items.filter((item) => item.type === activeFilter);
+  }, [activeFilter, items]);
 
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#C4B5FD"
+              colors={['#C4B5FD']}
+            />
+          }>
           <View style={styles.content}>
-            <View style={styles.headerRow}>
-              <View style={styles.avatar}>
-                <Ionicons name="person" size={15} color="#C4B5FD" />
-              </View>
-              <View>
-                <Text style={styles.welcomeText}>Hoş geldin,</Text>
-                <Text style={styles.nameText}>{profile.fullName}</Text>
-              </View>
-            </View>
 
             <Text style={styles.pageTitle}>Geçmişim</Text>
 
             <View style={styles.filtersRow}>
-              <Pressable
-                onPress={() => setActiveFilter('all')}
-                style={({ hovered, pressed }) => [
-                  styles.filterPill,
-                  activeFilter === 'all' && styles.filterPillActive,
-                  isWeb && hovered && styles.hover,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={[styles.filterText, activeFilter === 'all' && styles.filterTextActive]}>Tümü</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setActiveFilter('cv')}
-                style={({ hovered, pressed }) => [
-                  styles.filterPill,
-                  activeFilter === 'cv' && styles.filterPillActive,
-                  isWeb && hovered && styles.hover,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={[styles.filterText, activeFilter === 'cv' && styles.filterTextActive]}>
-                  CV{'\n'}Analizleri
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setActiveFilter('interview')}
-                style={({ hovered, pressed }) => [
-                  styles.filterPill,
-                  activeFilter === 'interview' && styles.filterPillActive,
-                  isWeb && hovered && styles.hover,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={[styles.filterText, activeFilter === 'interview' && styles.filterTextActive]}>
-                  Mülakatlar
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.list}>
-              {filteredItems.map((item, idx) => {
-                const showAccent = idx === 0 || idx === 2;
+              {(['all', 'cv', 'interview'] as HistoryFilter[]).map((f) => {
+                const label = f === 'all' ? 'Tümü' : f === 'cv' ? 'CV\nAnalizleri' : 'Mülakatlar';
+                const active = activeFilter === f;
                 return (
                   <Pressable
-                    key={item.id}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/report-detail',
-                        params: { id: item.id },
-                      })
-                    }
+                    key={f}
+                    onPress={() => setActiveFilter(f)}
                     style={({ hovered, pressed }) => [
-                      styles.itemCard,
-                      showAccent && styles.itemCardAccent,
-                      isWeb && hovered && styles.itemCardHover,
+                      styles.filterPill,
+                      active && styles.filterPillActive,
+                      isWeb && hovered && styles.hover,
                       pressed && styles.pressed,
                     ]}>
-                    {showAccent ? <View style={styles.accentStrip} /> : null}
-                    <View style={styles.itemInner}>
-                      <View style={styles.itemLeft}>
-                        <View style={styles.itemIconWrap}>
-                          <Ionicons name={item.icon} size={18} color="#C4B5FD" />
-                        </View>
-                        <View style={styles.itemTextCol}>
-                          <Text style={styles.itemTitle}>{item.title}</Text>
-                          <Text style={styles.itemDate}>{item.dateLabel}</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.itemRight}>
-                        <Text style={styles.itemRightText}>{item.rightLabel}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#64748B" />
-                      </View>
-                    </View>
+                    <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
                   </Pressable>
                 );
               })}
             </View>
+
+            {loading ? (
+              <View style={styles.centerState}>
+                <ActivityIndicator size="large" color="#C4B5FD" />
+                <Text style={styles.stateText}>Geçmiş yükleniyor…</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.centerState}>
+                <Ionicons name="alert-circle-outline" size={40} color="#F87171" />
+                <Text style={[styles.stateText, { color: '#F87171' }]}>{error}</Text>
+                <Pressable
+                  onPress={() => { setLoading(true); void loadHistory(); }}
+                  style={styles.retryBtn}>
+                  <Text style={styles.retryText}>Tekrar Dene</Text>
+                </Pressable>
+              </View>
+            ) : filteredItems.length === 0 ? (
+              <View style={styles.centerState}>
+                <Ionicons name="time-outline" size={48} color="#334155" />
+                <Text style={styles.stateText}>
+                  {activeFilter === 'all'
+                    ? 'Henüz geçmiş kaydın yok.\nMülakat veya CV analizi tamamla!'
+                    : activeFilter === 'cv'
+                    ? 'Henüz CV analizi yapılmamış.'
+                    : 'Henüz mülakat tamamlanmamış.'}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.list}>
+                {filteredItems.map((item, idx) => {
+                  const showAccent = idx % 2 === 0;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/report-detail',
+                          params: { id: item.id, type: item.type },
+                        })
+                      }
+                      style={({ hovered, pressed }) => [
+                        styles.itemCard,
+                        showAccent && styles.itemCardAccent,
+                        isWeb && hovered && styles.itemCardHover,
+                        pressed && styles.pressed,
+                      ]}>
+                      {showAccent ? <View style={styles.accentStrip} /> : null}
+                      <View style={styles.itemInner}>
+                        <View style={styles.itemLeft}>
+                          <View style={styles.itemIconWrap}>
+                            <Ionicons name={item.icon} size={18} color="#C4B5FD" />
+                          </View>
+                          <View style={styles.itemTextCol}>
+                            <Text style={styles.itemTitle}>{item.title}</Text>
+                            <Text style={styles.itemDate}>{item.dateLabel}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.itemRight}>
+                          <Text style={styles.itemRightText}>{item.rightLabel}</Text>
+                          <Ionicons name="chevron-forward" size={18} color="#64748B" />
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -169,7 +175,7 @@ export default function GecmisimScreen() {
 const styles = StyleSheet.create({
   pageBackground: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
-  safeAreaWeb: { paddingHorizontal: 18 },
+  safeAreaWeb: { paddingHorizontal: 18, paddingTop: 60 },
   scrollContent: { paddingBottom: 140 },
   content: {
     width: '100%',
@@ -197,7 +203,7 @@ const styles = StyleSheet.create({
   },
   nameText: { color: '#A78BFA', fontSize: 17, fontWeight: '600' },
 
-  pageTitle: { marginTop: 22, color: '#F8FAFC', fontSize: 44, fontWeight: '800' },
+  pageTitle: { marginTop: 22, color: '#F8FAFC', fontSize: 32, fontWeight: '800' },
 
   filtersRow: { marginTop: 18, flexDirection: 'row', gap: 12 },
   filterPill: {
@@ -218,6 +224,30 @@ const styles = StyleSheet.create({
   },
   filterText: { color: '#C8D1E1', fontSize: 13, fontWeight: '700', textAlign: 'center' },
   filterTextActive: { color: '#0F172A' },
+
+  centerState: {
+    marginTop: 60,
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+  },
+  stateText: {
+    color: '#64748B',
+    fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  retryBtn: {
+    marginTop: 4,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(196, 181, 253, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.3)',
+  },
+  retryText: { color: '#C4B5FD', fontSize: 14, fontWeight: '700' },
 
   list: { marginTop: 18, gap: 14 },
   itemCard: {

@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackHeader } from '@/components/navigation/back-header';
 import { BottomNavBar } from '@/components/navigation/bottom-nav-bar';
+import { WebNavBar } from '@/components/navigation/web-nav-bar';
 import { useUserProfile } from '@/contexts/user-profile-context';
 import { requestCvAnalysis } from '@/lib/cv-analysis-api';
 import { readPdfAsBase64, readWebFileAsBase64 } from '@/lib/read-pdf-base64';
@@ -239,6 +240,119 @@ export default function CvAnalysisScreen() {
     </View>
   ) : null;
 
+  if (isWeb) {
+    return (
+      <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
+        <WebNavBar />
+        <SafeAreaView style={styles.safeAreaWeb} edges={[]}>
+          <ScrollView
+            contentContainerStyle={styles.webScrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
+
+            {/* Back button — tam sol kenar */}
+            <View style={styles.webBackRow}>
+              <BackHeader />
+            </View>
+
+            <View style={styles.webInner}>
+              {/* Top row — sadece sağdaki boşluk için */}
+              <View style={styles.webTopRow} />
+
+              {/* Two-column body */}
+              <View style={styles.webColumns}>
+
+                {/* Left: info */}
+                <View style={styles.webLeft}>
+                  <View style={styles.webBadge}>
+                    <MaterialIcons name="picture-as-pdf" size={14} color="#C4B5FD" />
+                    <Text style={styles.webBadgeText}>Yapay Zeka Destekli</Text>
+                  </View>
+                  <Text style={styles.webTitle}>CV{'\n'}Analizi</Text>
+                  <Text style={styles.webSubtitle}>
+                    {'CV\'ni yükle, hedef pozisyona göre uyumluluk analizini al. Güçlü yönlerin ve gelişim alanların ortaya çıksın.'}
+                  </Text>
+                  <View style={styles.webFeatureList}>
+                    {[
+                      'Uyumluluk skoru',
+                      'Güçlü yönler',
+                      'Eksik alanlar',
+                      'İyileştirme önerileri',
+                    ].map((f) => (
+                      <View key={f} style={styles.webFeatureItem}>
+                        <Ionicons name="checkmark-circle" size={15} color="#A78BFA" />
+                        <Text style={styles.webFeatureText}>{f}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Right: form card */}
+                <View style={styles.webRight}>
+                  {/* Drop zone */}
+                  <View
+                    ref={webDropZoneRef}
+                    style={[styles.webDropZone, styles.uploadCursorWeb]}>
+                    <View style={styles.webDropIconWrap}>
+                      <MaterialIcons name="picture-as-pdf" size={28} color="#C4B5FD" />
+                    </View>
+                    <Text style={styles.webDropTitle}>
+                      {"CV'nizi Sürükleyin veya Seçin"}
+                    </Text>
+                    <Text style={styles.webDropHint}>Desteklenen format: PDF</Text>
+                    {selectedFileBadge}
+                  </View>
+
+                  {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+                  {/* Fields row */}
+                  <View style={styles.webFieldRow}>
+                    <View style={styles.webFieldHalf}>
+                      <Text style={styles.fieldLabel}>HEDEF POZİSYON</Text>
+                      <TextInput
+                        value={targetRole}
+                        onChangeText={(v) => { setTargetRole(v); if (errorMessage) setErrorMessage(''); }}
+                        placeholder="Orn: Yazılım Geliştirici"
+                        placeholderTextColor="#475569"
+                        style={styles.webInput}
+                      />
+                    </View>
+                    <View style={styles.webFieldHalf}>
+                      <Text style={styles.fieldLabel}>SEKTÖR</Text>
+                      <TextInput
+                        value={sector}
+                        onChangeText={(v) => { setSector(v); if (errorMessage) setErrorMessage(''); }}
+                        placeholder="Orn: Teknoloji"
+                        placeholderTextColor="#475569"
+                        style={styles.webInput}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Button */}
+                  <Pressable
+                    style={[styles.webActionBtn, (!canStartAnalysis || submitting) && styles.actionButtonDisabled]}
+                    disabled={!canStartAnalysis || submitting}
+                    onPress={() => void startAnalysis()}>
+                    {submitting ? (
+                      <ActivityIndicator color="#0F172A" />
+                    ) : (
+                      <>
+                        <Ionicons name="play" size={15} color="#1E1B4B" />
+                        <Text style={styles.actionButtonText}>Analizi Başlat</Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.pageBackground}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -264,31 +378,16 @@ export default function CvAnalysisScreen() {
             <Text style={styles.subtitle}>Kariyerini bir ust seviyeye tasimak icin analizini baslat.</Text>
           </View>
 
-          {isWeb ? (
-            <View
-              ref={webDropZoneRef}
-              style={[styles.uploadTouchArea, styles.uploadCard, styles.uploadCursorWeb]}
-            >
+          <View style={[styles.uploadTouchArea, styles.uploadCard, styles.uploadCardNative]}>
+            <Pressable onPress={openPdfPickerUnlessSuppressed} style={styles.uploadNativeTapArea}>
               <View style={styles.uploadIconWrap}>
                 <MaterialIcons name="picture-as-pdf" size={32} color="#C4B5FD" />
               </View>
-              <Text style={styles.uploadTitle}>{"CV'nizi Buraya Sürükleyin veya Dosya Seçin"}</Text>
+              <Text style={styles.uploadTitle}>{"CV'nizi Buraya Yükleyin"}</Text>
               <Text style={styles.uploadHint}>Desteklenen format: PDF</Text>
-
-              {selectedFileBadge}
-            </View>
-          ) : (
-            <View style={[styles.uploadTouchArea, styles.uploadCard, styles.uploadCardNative]}>
-              <Pressable onPress={openPdfPickerUnlessSuppressed} style={styles.uploadNativeTapArea}>
-                <View style={styles.uploadIconWrap}>
-                  <MaterialIcons name="picture-as-pdf" size={32} color="#C4B5FD" />
-                </View>
-                <Text style={styles.uploadTitle}>{"CV'nizi Buraya Yükleyin"}</Text>
-                <Text style={styles.uploadHint}>Desteklenen format: PDF</Text>
-              </Pressable>
-              {selectedFileBadge}
-            </View>
-          )}
+            </Pressable>
+            {selectedFileBadge}
+          </View>
 
           {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
@@ -298,9 +397,7 @@ export default function CvAnalysisScreen() {
               value={targetRole}
               onChangeText={(value) => {
                 setTargetRole(value);
-                if (errorMessage) {
-                  setErrorMessage('');
-                }
+                if (errorMessage) setErrorMessage('');
               }}
               placeholder="Orn: Yazilim Gelistirici"
               placeholderTextColor="#475569"
@@ -314,9 +411,7 @@ export default function CvAnalysisScreen() {
               value={sector}
               onChangeText={(value) => {
                 setSector(value);
-                if (errorMessage) {
-                  setErrorMessage('');
-                }
+                if (errorMessage) setErrorMessage('');
               }}
               placeholder="Orn: Teknoloji"
               placeholderTextColor="#475569"
@@ -351,6 +446,145 @@ export default function CvAnalysisScreen() {
 
 const styles = StyleSheet.create({
   pageBackground: { flex: 1 },
+
+  /* ── WEB LAYOUT ─────────────────────────────────── */
+  safeAreaWeb: { flex: 1, paddingTop: 60 },
+  webScrollContainer: { flexGrow: 1 },
+  webBackRow: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  webInner: {
+    maxWidth: 1000,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 40,
+    paddingTop: 16,
+    paddingBottom: 48,
+  },
+  webTopRow: {
+    marginBottom: 24,
+  },
+  webColumns: {
+    flexDirection: 'row',
+    gap: 48,
+    alignItems: 'flex-start',
+  },
+  webLeft: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  webBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(196, 181, 253, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 20,
+  },
+  webBadgeText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  webTitle: {
+    color: '#F8FAFC',
+    fontSize: 52,
+    fontWeight: '800',
+    lineHeight: 58,
+    marginBottom: 16,
+  },
+  webSubtitle: {
+    color: '#94A3B8',
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 28,
+    maxWidth: 340,
+  },
+  webFeatureList: { gap: 10 },
+  webFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  webFeatureText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  webRight: {
+    flex: 1.3,
+    gap: 0,
+  },
+  webDropZone: {
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(196, 181, 253, 0.4)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  webDropIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(167, 139, 250, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  webDropTitle: {
+    color: '#E2E8F0',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  webDropHint: {
+    color: '#64748B',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  webFieldRow: {
+    flexDirection: 'row',
+    gap: 14,
+    marginBottom: 20,
+  },
+  webFieldHalf: {
+    flex: 1,
+    gap: 8,
+  },
+  webInput: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#030712',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.22)',
+    paddingHorizontal: 14,
+    color: '#E2E8F0',
+    fontSize: 15,
+  },
+  webActionBtn: {
+    borderRadius: 14,
+    backgroundColor: '#A78BFA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+
+  /* ── MOBILE LAYOUT ───────────────────────────────── */
   safeArea: {
     flex: 1,
     paddingHorizontal: 24,

@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/lib/api-config';
+import { getStoredToken } from '@/lib/auth-token';
 
 export type InterviewMessage = {
   role: 'user' | 'model';
@@ -27,11 +28,14 @@ const TIMEOUT_MS = 60_000;
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const token = await getStoredToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   let res: Response;
   try {
     res = await fetch(getApiUrl(path), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });

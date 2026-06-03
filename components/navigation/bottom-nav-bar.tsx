@@ -23,6 +23,9 @@ export function BottomNavBar({ variant = 'floating' }: BottomNavBarProps) {
   const pathname = usePathname();
   const isWeb = Platform.OS === 'web';
 
+  // Web'de üst navbar kullanılıyor, alt bar gösterilmez
+  if (isWeb) return null;
+
   const bar = (
     <View style={styles.bar}>
       {NAV_ITEMS.map((item) => {

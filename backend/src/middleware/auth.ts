@@ -13,7 +13,7 @@ function sendUnauthorized(res: import('express').Response, message: string) {
   res.status(401).json({ error: message });
 }
 
-/** Authorization: Bearer token; `req.authUserId` atanır */
+/** Authorization: Bearer token; `req.authUserId` atanır. Token yoksa 401 döner. */
 export const requireAuth: RequestHandler = (req, res, next) => {
   const raw = req.headers.authorization;
   if (!raw || typeof raw !== 'string') {
@@ -38,4 +38,30 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   } catch {
     sendUnauthorized(res, 'Geçersiz veya süresi dolmuş oturum.');
   }
+};
+
+/**
+ * Token varsa doğrular ve req.authUserId atar; yoksa sessizce geçer (401 dönmez).
+ * Opsiyonel auth gerektiren endpoint'lerde kullanılır (kayıt için).
+ */
+export const optionalAuth: RequestHandler = (req, _res, next) => {
+  const raw = req.headers.authorization;
+  if (!raw || typeof raw !== 'string') {
+    next();
+    return;
+  }
+  const token = raw.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    next();
+    return;
+  }
+  try {
+    const cfg = loadConfig();
+    const decoded = jwt.verify(token, cfg.jwtSecret) as JwtPayload;
+    const sub = typeof decoded.sub === 'string' ? decoded.sub : '';
+    if (sub) req.authUserId = sub;
+  } catch {
+    // geçersiz token, yoksay
+  }
+  next();
 };

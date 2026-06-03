@@ -15,7 +15,7 @@ export default function ForgotPasswordScreen() {
   return (
     <LinearGradient colors={['#020617', '#0B0F2A']} style={styles.background}>
       <SafeAreaView style={[styles.safeArea, isWeb && styles.safeAreaWeb]}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={isWeb ? styles.scrollContentWeb : styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             <View style={styles.topBar}>
               <Pressable
@@ -65,8 +65,9 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: 18, paddingTop: 10 },
-  safeAreaWeb: { paddingHorizontal: 18 },
+  safeAreaWeb: { flex: 1, paddingTop: 60, paddingHorizontal: 0 },
   scrollContent: { paddingBottom: 140 },
+  scrollContentWeb: { paddingHorizontal: 24, paddingBottom: 48, maxWidth: 520, width: '100%', alignSelf: 'center' },
   content: { width: '100%', maxWidth: 520, alignSelf: 'center' },
 
   topBar: { marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

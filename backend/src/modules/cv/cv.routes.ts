@@ -2,6 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Router } from 'express';
 
 import type { CvAnalysisAiReport } from './cv-analysis-types.js';
+import { optionalAuth } from '../../middleware/auth.js';
+import { getPrisma } from '../../db/prisma.js';
 
 export const cvRouter = Router();
 
@@ -203,7 +205,7 @@ function shouldRetryWithAnotherGeminiModel(err: unknown): boolean {
   );
 }
 
-cvRouter.post('/analyze', async (req, res) => {
+cvRouter.post('/analyze', optionalAuth, async (req, res) => {
   const startedAt = Date.now();
   const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
   if (!apiKey) {
@@ -296,6 +298,25 @@ Kurallar:
         const report = coerceReport(parsed);
         res.json({ report });
         console.info(`[cv/analyze] success model=${mid} in ${Date.now() - startedAt}ms`);
+
+        if (req.authUserId) {
+          const db = getPrisma();
+          if (db) {
+            db.cvAnalysis.create({
+              data: {
+                userId: req.authUserId,
+                targetRole,
+                sector,
+                compatibilityScore: report.compatibilityScore,
+                scoreSummary: report.scoreSummary,
+                strengths: report.strengths,
+                gaps: report.gaps,
+                suggestions: report.suggestions,
+              },
+            }).catch((e: unknown) => console.warn('[cv/analyze] kayıt başarısız', e));
+          }
+        }
+
         return;
       } catch (e) {
         lastErr = e;

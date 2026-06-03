@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -68,10 +68,10 @@ export default function SignInScreen() {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <View style={styles.inner}>
+            <View style={[styles.inner, isWeb && styles.innerWeb]}>
               <View style={styles.logoRow}>
                 <Ionicons name="document-text" size={22} color={ACCENT} />
-                <Text style={styles.logoText}>PrepUp</Text>
+                <Text style={styles.logoText}>Prep<Text style={styles.logoAccent}>Up</Text></Text>
               </View>
 
               <Text style={styles.title}>
@@ -131,7 +131,7 @@ export default function SignInScreen() {
                 </Pressable>
               </View>
 
-              <View style={styles.footerRow}>
+              <View style={[styles.footerRow, isWeb && styles.footerRowWeb]}>
                 <Text style={styles.footerMuted}>Henüz üye değil misin? </Text>
                 <Pressable onPress={() => router.push('/register')} hitSlop={8}>
                   <Text style={styles.footerLink}>Şimdi Kayıt Ol.</Text>
@@ -159,6 +159,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
   },
+  innerWeb: {
+    justifyContent: 'center',
+  },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -167,10 +170,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoText: {
-    color: ACCENT,
+    color: '#F1F5F9',
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  logoAccent: {
+    color: ACCENT,
   },
   title: {
     fontSize: 28,
@@ -246,6 +252,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  footerRowWeb: {
+    marginTop: 32,
+    paddingTop: 0,
   },
   footerMuted: {
     color: MUTED,

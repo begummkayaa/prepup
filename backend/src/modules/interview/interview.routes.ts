@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Router } from 'express';
 
+import { optionalAuth } from '../../middleware/auth.js';
+import { getPrisma } from '../../db/prisma.js';
+
 export const interviewRouter = Router();
 
 let quotaBlockedUntilMs = 0;
@@ -17,6 +20,27 @@ function quotaCooldownRemaining(): number {
 
 function geminiModelId(): string {
   return (process.env.GEMINI_MODEL ?? 'gemini-2.5-flash').trim() || 'gemini-2.5-flash';
+}
+
+function geminiModelCandidates(): string[] {
+  const preferred = geminiModelId();
+  const fallbacks = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+  const ordered = [preferred, ...fallbacks.filter((m) => m !== preferred)];
+  return [...new Set(ordered)];
+}
+
+function shouldTryNextModel(err: unknown): boolean {
+  const s = err instanceof Error ? err.message : String(err);
+  const l = s.toLowerCase();
+  return (
+    l.includes('503') ||
+    l.includes('service unavailable') ||
+    l.includes('high demand') ||
+    l.includes('404') ||
+    l.includes('not found') ||
+    l.includes('fetch failed') ||
+    l.includes('econnrefused')
+  );
 }
 
 function isQuotaError(err: unknown): boolean {
@@ -120,12 +144,35 @@ Toplam ${totalQuestions} soru sorulacak. Şu an ${questionNumber}. soruyu soruyo
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: geminiModelId() });
-    const result = await withTimeout(model.generateContent(prompt), 30_000);
-    const question = result.response.text().trim();
+    const candidates = geminiModelCandidates();
+    let lastErr: unknown;
 
-    res.json({ question, questionNumber, isLast });
-    console.info(`[interview/next-question] q=${questionNumber}/${totalQuestions} isLast=${isLast}`);
+    for (let i = 0; i < candidates.length; i++) {
+      const mid = candidates[i];
+      try {
+        const model = genAI.getGenerativeModel({ model: mid });
+        const result = await withTimeout(model.generateContent(prompt), 30_000);
+        const question = result.response.text().trim();
+        res.json({ question, questionNumber, isLast });
+        console.info(`[interview/next-question] q=${questionNumber}/${totalQuestions} isLast=${isLast} model=${mid}`);
+        return;
+      } catch (e) {
+        lastErr = e;
+        if (isQuotaError(e)) {
+          blockQuota();
+          res.status(429).json({ error: 'Gemini API kotası doldu. 5 dakika sonra tekrar dene.' });
+          return;
+        }
+        if (shouldTryNextModel(e) && i < candidates.length - 1) {
+          console.warn(`[interview/next-question] model=${mid} başarısız, sonraki deneniyor...`);
+          continue;
+        }
+        break;
+      }
+    }
+
+    console.error('[interview/next-question]', lastErr);
+    res.status(502).json({ error: 'Soru alınamadı. Tekrar dene.' });
   } catch (e) {
     if (isQuotaError(e)) {
       blockQuota();
@@ -138,7 +185,7 @@ Toplam ${totalQuestions} soru sorulacak. Şu an ${questionNumber}. soruyu soruyo
 });
 
 /** POST /v1/interview/summary */
-interviewRouter.post('/summary', async (req, res) => {
+interviewRouter.post('/summary', optionalAuth, async (req, res) => {
   const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
   if (!apiKey) {
     res.status(503).json({ error: 'GEMINI_API_KEY tanımlı değil.' });
@@ -195,9 +242,33 @@ Kurallar: tips dizisi 2-4 madde, questionAnalysis her soru için bir kayıt içe
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: geminiModelId() });
-    const result = await withTimeout(model.generateContent(prompt), 60_000);
-    const text = result.response.text().trim();
+    const candidates = geminiModelCandidates();
+    let text = '';
+    let lastErr: unknown;
+
+    for (let i = 0; i < candidates.length; i++) {
+      const mid = candidates[i];
+      try {
+        const model = genAI.getGenerativeModel({ model: mid });
+        const result = await withTimeout(model.generateContent(prompt), 60_000);
+        text = result.response.text().trim();
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (isQuotaError(e)) {
+          blockQuota();
+          res.status(429).json({ error: 'Gemini API kotası doldu. 5 dakika sonra tekrar dene.' });
+          return;
+        }
+        if (shouldTryNextModel(e) && i < candidates.length - 1) {
+          console.warn(`[interview/summary] model=${mid} başarısız, sonraki deneniyor...`);
+          continue;
+        }
+        throw lastErr;
+      }
+    }
+
+    if (!text) throw lastErr ?? new Error('Boş yanıt');
 
     const parsed = extractJsonObject(text);
 
@@ -227,6 +298,23 @@ Kurallar: tips dizisi 2-4 madde, questionAnalysis her soru için bir kayıt içe
 
     res.json({ score, overallFeedback, questionAnalysis, tips });
     console.info(`[interview/summary] score=${score} questions=${questionAnalysis.length}`);
+
+    if (req.authUserId) {
+      const db = getPrisma();
+      if (db) {
+        db.interviewSession.create({
+          data: {
+            userId: req.authUserId,
+            role: targetRole,
+            sector,
+            score,
+            overallFeedback,
+            questions: questionAnalysis as object[],
+            tips,
+          },
+        }).catch((e: unknown) => console.warn('[interview/summary] kayıt başarısız', e));
+      }
+    }
   } catch (e) {
     if (isQuotaError(e)) {
       blockQuota();

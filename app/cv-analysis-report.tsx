@@ -133,7 +133,14 @@ export default function CvAnalysisReportScreen() {
               ))}
             </View>
 
-            <Pressable style={styles.actionButton} onPress={() => router.push('/interview-simulation')}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/interview-simulation',
+                  params: { targetRole, sector },
+                })
+              }>
               <Text style={styles.actionButtonText}>MÜLAKAT SİMÜLASYONUNA GEÇ</Text>
             </Pressable>
           </ScrollView>
@@ -152,6 +159,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   safeAreaWeb: {
+    paddingTop: 60,
     paddingHorizontal: 18,
   },
   scrollWrap: {
