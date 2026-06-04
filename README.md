@@ -1,59 +1,62 @@
-# PrepUp — Yapay Zeka Destekli Kariyer Asistanı
+# 🚀 PrepUp — Yapay Zeka Destekli Kariyer Asistanı
 
 PrepUp, iş arayanların kariyer hazırlığını güçlendirmek için geliştirilmiş bir mobil ve web uygulamasıdır. CV analizinden mülakat simülasyonuna kadar tüm süreci yapay zeka ile destekler.
 
 ---
 
-## Özellikler
+## ✨ Özellikler
 
-- **CV Analizi** — CV yükle, hedef rol ve sektör seç; Gemini AI ile uyumluluk skoru, güçlü yönler, eksikler ve öneriler al
-- **Mülakat Simülasyonu** — Seçtiğin role özel AI destekli mülakat soruları, cevaplarına anlık geri bildirim ve detaylı performans raporu
-- **Geçmiş** — Tüm CV analizleri ve mülakat oturumlarını tek yerden gör, filtrele, detaylarına ulaş
-- **Şifre Sıfırlama** — E-posta ile 6 haneli kod gönderimi (nodemailer)
-- **Web + Mobil** — Android, iOS ve tarayıcıda çalışır
-
----
-
-## Teknoloji Yığını
-
-### Frontend
-| | |
-|---|---|
-| Framework | React Native 0.81 + Expo 54 |
-| Routing | Expo Router (dosya tabanlı) |
-| Dil | TypeScript |
-| UI | expo-linear-gradient, @expo/vector-icons, react-native-reanimated |
-| Depolama | AsyncStorage (oturum/token) |
-| Platform | Android · iOS · Web (react-native-web) |
-
-### Backend
-| | |
-|---|---|
-| Sunucu | Node.js 20+ · Express 4 |
-| Dil | TypeScript (tsx ile geliştirme) |
-| Veritabanı | PostgreSQL + Prisma 6 |
-| Yapay Zeka | Google Gemini (`gemini-2.5-flash`) |
-| Auth | bcryptjs · jsonwebtoken |
-| E-posta | nodemailer |
-| Güvenlik | helmet · cors |
+- 📄 **CV Analizi** — CV yükle, hedef rol ve sektör seç; Gemini AI ile uyumluluk skoru, güçlü yönler, eksikler ve öneriler al
+- 💬 **Mülakat Simülasyonu** — Seçtiğin role özel AI destekli mülakat soruları, cevaplarına anlık geri bildirim ve detaylı performans raporu
+- 📜 **Geçmiş** — Tüm CV analizleri ve mülakat oturumlarını tek yerden gör, filtrele, detaylarına ulaş
+- 🔒 **Şifre Sıfırlama** — E-posta ile 6 haneli kod gönderimi (nodemailer)
+- 📱 **Web + Mobil** — Android, iOS ve tarayıcıda çalışır
 
 ---
 
-## Kurulum
+## 🛠️ Teknoloji Yığını
 
-### Gereksinimler
+### 🎨 Frontend
+
+| | |
+|---|---|
+| 🏗️ Framework | React Native 0.81 + Expo 54 |
+| 🗺️ Routing | Expo Router (dosya tabanlı) |
+| 📘 Dil | TypeScript |
+| 💅 UI | expo-linear-gradient, @expo/vector-icons, react-native-reanimated |
+| 💾 Depolama | AsyncStorage (oturum/token) |
+| 🌐 Platform | 🤖 Android · 🍏 iOS · 💻 Web (react-native-web) |
+
+### ⚙️ Backend
+
+| | |
+|---|---|
+| 🟢 Sunucu | Node.js 20+ · Express 4 |
+| 📘 Dil | TypeScript (tsx ile geliştirme) |
+| 🐘 Veritabanı | PostgreSQL + Prisma 6 |
+| 🤖 Yapay Zeka | Google Gemini (`gemini-2.5-flash`) |
+| 🔐 Auth | bcryptjs · jsonwebtoken |
+| 📧 E-posta | nodemailer |
+| 🛡️ Güvenlik | helmet · cors |
+
+---
+
+## 📥 Kurulum
+
+### 📋 Gereksinimler
 - Node.js 20+
 - PostgreSQL
 - Google Gemini API anahtarı
 
-### 1. Depoyu klonla
+### 1. 📂 Depoyu klonla
 
 ```bash
-git clone https://github.com/kullanici-adi/prepup.git
+git clone [https://github.com/kullanici-adi/prepup.git](https://github.com/kullanici-adi/prepup.git)
 cd prepup
-```
 
-### 2. Ortam değişkenlerini ayarla
+---
+
+### 2. ⚙️ Ortam değişkenlerini ayarla
 
 ```bash
 copy .env.example .env
@@ -73,7 +76,7 @@ DATABASE_URL=postgresql://prepup:prepup@localhost:5432/prepup
 # SMTP_PASS=...
 ```
 
-### 3. Backend
+### 3. 🚀 Backend
 
 ```bash
 cd backend
@@ -82,7 +85,7 @@ npm run db:migrate   # Prisma migration
 npm run dev          # http://localhost:3001
 ```
 
-### 4. Frontend
+### 4. 📱 Frontend
 
 ```bash
 # Proje kökünde
@@ -91,13 +94,13 @@ npx expo start
 ```
 
 Expo uygulamasını aç:
-- **Tarayıcı:** `w` tuşuna bas
-- **Telefon:** QR kodu oku (Expo Go) — bilgisayar ve telefon aynı Wi-Fi'da olmalı
-- **Android USB:** `npm run adb:reverse-api` sonra `EXPO_PUBLIC_API_URL=http://127.0.0.1:3001`
+- **🌐 Tarayıcı:** `w` tuşuna bas
+- **📱 Telefon:** QR kodu oku (Expo Go) — bilgisayar ve telefon aynı Wi-Fi'da olmalı
+- **🔌 Android USB:** `npm run adb:reverse-api` sonra `EXPO_PUBLIC_API_URL=http://127.0.0.1:3001`
 
 ---
 
-## Proje Yapısı
+## 📁 Proje Yapısı
 
 ```
 prepup/
@@ -125,7 +128,7 @@ prepup/
 
 ---
 
-## API Uç Noktaları
+## 🌐 API Uç Noktaları
 
 | Yöntem | Yol | Açıklama |
 |--------|-----|----------|
@@ -141,6 +144,6 @@ prepup/
 
 ---
 
-## Lisans
+## 📄 Lisans
 
 MIT
