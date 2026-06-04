@@ -71,15 +71,17 @@ export default function CvAnalysisReportScreen() {
             contentContainerStyle={[styles.scrollContent, isWeb && styles.scrollContentWeb]}
             showsVerticalScrollIndicator={false}>
             <BackHeader />
-            <View style={styles.headerRow}>
-              <View style={styles.avatar}>
-                <Ionicons name="person" size={15} color={ACCENT_PURPLE} />
+            {!isWeb && (
+              <View style={styles.headerRow}>
+                <View style={styles.avatar}>
+                  <Ionicons name="person" size={15} color={ACCENT_PURPLE} />
+                </View>
+                <View>
+                  <Text style={styles.welcomeText}>HOŞ GELDİN,</Text>
+                  <Text style={styles.nameText}>{profile.fullName}</Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.welcomeText}>HOŞ GELDİN,</Text>
-                <Text style={styles.nameText}>{profile.fullName}</Text>
-              </View>
-            </View>
+            )}
 
             <View style={styles.titleBlock}>
               <Text style={styles.title}>CV Analiz Raporu</Text>

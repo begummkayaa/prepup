@@ -40,15 +40,17 @@ export default function InterviewSummaryScreen() {
           showsVerticalScrollIndicator={false}>
           <BackHeader />
 
-          <View style={styles.headerRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={15} color="#C4B5FD" />
+          {!isWeb && (
+            <View style={styles.headerRow}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={15} color="#C4B5FD" />
+              </View>
+              <View>
+                <Text style={styles.welcomeText}>Hoş geldin,</Text>
+                <Text style={styles.nameText}>{profile.fullName}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.welcomeText}>Hoş geldin,</Text>
-              <Text style={styles.nameText}>{profile.fullName}</Text>
-            </View>
-          </View>
+          )}
 
           <View style={styles.titleRow}>
             <Text style={styles.title}>Performans Özeti</Text>

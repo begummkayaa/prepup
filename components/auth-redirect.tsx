@@ -30,7 +30,8 @@ export function AuthRedirectToLogin() {
       path === '/index' ||
       path === '/sign-in' ||
       path === '/register' ||
-      path === '/forgot-password';
+      path === '/forgot-password' ||
+      path === '/reset-password';
 
     if (!isPublic) {
       nav.replace('/sign-in');

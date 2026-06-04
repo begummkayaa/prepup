@@ -7,6 +7,7 @@ import { getPrisma } from '../../db/prisma.js';
 import { hashPassword, verifyPassword } from '../../lib/auth/password.js';
 import { signAccessToken } from '../../lib/auth/tokens.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { sendPasswordResetCode } from '../../lib/mailer.js';
 
 const router = Router();
 
@@ -141,6 +142,72 @@ router.get('/me', requireAuth, async (req, res) => {
     }
     throw e;
   }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  const prisma = getPrisma();
+  if (!prisma) {
+    res.status(503).json({ error: 'Sunucuda veritabanı yapılandırılmadı.' });
+    return;
+  }
+
+  const body = req.body as Record<string, unknown>;
+  const emailRaw = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+
+  if (!emailRaw.includes('@')) {
+    res.status(400).json({ error: 'Geçerli bir e-posta gir.' });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: emailRaw } }).catch(() => null);
+
+  // Güvenlik: e-posta kayıtlı olsun ya da olmasın aynı yanıtı dön
+  if (user) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await prisma.passwordResetCode.create({ data: { email: emailRaw, code, expiresAt } });
+    await sendPasswordResetCode(emailRaw, code);
+  }
+
+  res.json({ message: 'Kod gönderildi.' });
+});
+
+router.post('/reset-password', async (req, res) => {
+  const prisma = getPrisma();
+  if (!prisma) {
+    res.status(503).json({ error: 'Sunucuda veritabanı yapılandırılmadı.' });
+    return;
+  }
+
+  const body = req.body as Record<string, unknown>;
+  const emailRaw = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const code = typeof body.code === 'string' ? body.code.trim() : '';
+  const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
+
+  if (!emailRaw.includes('@') || !code || newPassword.length < 8) {
+    res.status(400).json({ error: 'Geçersiz istek parametreleri.' });
+    return;
+  }
+
+  const record = await prisma.passwordResetCode.findFirst({
+    where: { email: emailRaw, code, used: false, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) {
+    res.status(400).json({ error: 'Kod geçersiz veya süresi dolmuş.' });
+    return;
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { email: emailRaw }, data: { passwordHash } }),
+    prisma.passwordResetCode.update({ where: { id: record.id }, data: { used: true } }),
+  ]);
+
+  res.json({ message: 'Şifre güncellendi.' });
 });
 
 export { router as authRouter };

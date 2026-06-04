@@ -1,23 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 type SimulationHeaderProps = {
-  userName: string;
+  userName?: string;
   targetRole: string;
 };
 
 export function SimulationHeader({ userName, targetRole }: SimulationHeaderProps) {
+  const isWeb = Platform.OS === 'web';
+
   return (
     <View>
-      <View style={styles.profileRow}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={15} color="#C4B5FD" />
+      {!isWeb && userName && (
+        <View style={styles.profileRow}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={15} color="#C4B5FD" />
+          </View>
+          <View>
+            <Text style={styles.welcomeText}>Hoş geldin,</Text>
+            <Text style={styles.nameText}>{userName}</Text>
+          </View>
         </View>
-        <View>
-          <Text style={styles.welcomeText}>Hoş geldin,</Text>
-          <Text style={styles.nameText}>{userName}</Text>
-        </View>
-      </View>
+      )}
 
       <View style={styles.titleBlock}>
         <Text style={styles.title}>Mülakat Simülasyonu</Text>

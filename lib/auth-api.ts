@@ -123,6 +123,34 @@ export async function registerRequest(
   return { accessToken, user: { id: u.id, email: u.email, fullName: u.fullName } };
 }
 
+export async function forgotPasswordRequest(email: string): Promise<void> {
+  const res = await fetchApi(getApiUrl('/v1/auth/forgot-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
+    throw new Error(errMessage(data));
+  }
+}
+
+export async function resetPasswordRequest(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetchApi(getApiUrl('/v1/auth/reset-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim(), newPassword }),
+  });
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
+    throw new Error(errMessage(data));
+  }
+}
+
 export async function fetchAuthMe(accessToken: string): Promise<AuthUser | null> {
   const res = await fetchApi(getApiUrl('/v1/auth/me'), {
     headers: { Authorization: `Bearer ${accessToken}` },
